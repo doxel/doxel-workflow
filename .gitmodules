@@ -1,0 +1,15 @@
+[submodule "openmvg-docker"]
+	path = openmvg-docker
+	url = https://github.com/doxel/openmvg-docker
+[submodule "doxel-viewer"]
+	path = doxel-viewer
+	url = https://github.com/doxel/doxel-viewer
+[submodule "jpeg_metadata_size"]
+	path = jpeg_metadata_size
+	url = https://github.com/doxel/jpeg_metadata_size
+[submodule "cmvspmvs-docker"]
+	path = cmvspmvs-docker
+	url = https://github.com/doxel/cmvspmvs-docker
+[submodule "potreeconverter-docker"]
+	path = potreeconverter-docker
+	url = https://github.com/doxel/potreeconverter-docker
