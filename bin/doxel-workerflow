@@ -23,7 +23,7 @@ PASSWORD=${PASSWORD:-worker}
 export DOCKER_DEFAULTS=${DOCKER_DEFAULTS:-"-v /mnt:/mnt -it --rm=true --cpus=$(nproc)"}
 
 dependencies() {
-  for cmd in node jq parallel ; do
+  for cmd in node jq parallel mogrify exiftool ; do
     if ! which $cmd > /dev/null ; then
       echo Command $cmd is required !
       exit 1
