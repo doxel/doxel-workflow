@@ -313,7 +313,7 @@ inject() {
 
 }
 
-processed(){
+completed(){
   progress "Set job as completed"
   log '{"msg": "completed", "t": '$(date -r $SEGMENT_DIR/processed +%s)'}' || exit
 }
@@ -333,8 +333,8 @@ process_segment() {
   openmvg2pmvs
   cmvspmvs
   viewer
-  processed
   inject
+  completed
 
 }
 
