@@ -71,7 +71,7 @@ USER_ID=$(jq -r .userId <<< $ACCESS_TOKEN)
 RESULT=$(doxel-getjob -a $AUTHORIZATION $URL)
 [ -z "$RESULT" ] && errmsg no reply
 if [ "$RESULT" == "{}" ] ; then
-  progress no job available
+  progress No job available
   exit
 fi
 
@@ -146,7 +146,7 @@ compute_matches() {
     progress openMVG_main_ComputeMatches
     COMPUTEMATCHES_OPTIONS=${COMPUTEMATCHES_OPTIONS:-\
       -g e \
-      -v 3 \
+      -v 12 \
     }
     progress "options: $COMPUTEMATCHES_OPTIONS"
     echo $COMPUTEMATCHES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEMATCHES_OPTIONS
@@ -239,7 +239,7 @@ cmvspmvs() {
   then
     progress "PMVS models directory already exist"
   else
-   progress "running CMVS/PMVS"
+   progress "Running CMVS/PMVS"
    cmvs $(pwd)/PMVS/ 80 $NUM_THREADS \
    && genOption $(pwd)/PMVS/ \
    && sed -i "s# pmvs# $(pwd)/PMVS#g" PMVS/pmvs.sh \
@@ -259,7 +259,7 @@ viewer() {
   then
     progress "Potree directory already exist"
   else
-    progress "running viewer.sh"
+    progress "Running viewer.sh"
     viewer.sh
 
     EXIT_CODE=$?
@@ -273,7 +273,7 @@ viewer() {
 }
 
 inject() {
-  progress injecting pointcloud into database
+  progress Injecting pointcloud into database
   doxel-segment-inject-pointcloud \
     --no-check-certificate \
     -a $AUTHORIZATION \
@@ -288,7 +288,8 @@ inject() {
 }
 
 processed(){
-  log '{"msg": "completed", "t": '$(date -r $SEGMENT_DIR/processed +%s)'}'
+  progress "Set job as completed"
+  log '{"msg": "completed", "t": '$(date -r $SEGMENT_DIR/processed +%s)'}' || exit
 }
 
 process_segment() {
@@ -305,8 +306,8 @@ process_segment() {
   openmvg2pmvs
   cmvspmvs
   viewer
-  inject
   processed
+  inject
 
 }
 
