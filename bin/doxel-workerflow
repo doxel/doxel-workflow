@@ -22,7 +22,16 @@ USERNAME=${USERNAME:-worker}
 PASSWORD=${PASSWORD:-worker}
 export DOCKER_DEFAULTS=${DOCKER_DEFAULTS:-"-v /mnt:/mnt -it --rm=true --cpus=$(nproc)"}
 
-function encodeURIComponent {
+dependencies() {
+  for cmd in node jq parallel mogrify exiftool ; do
+    if ! which $cmd > /dev/null ; then
+      echo Command $cmd is required !
+      exit 1
+    fi
+  done
+}
+
+encodeURIComponent() {
   node -e "console.log(encodeURIComponent('$*'))"
 }
 
@@ -49,6 +58,8 @@ log() {
 
   [ -n "$SEGMENT_DIR" ] && echo "$*" >> $SEGMENT_DIR/LOG
 }
+
+dependencies
 
 # login
 
