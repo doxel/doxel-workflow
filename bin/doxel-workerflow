@@ -99,6 +99,21 @@ SEGMENT_DIR=$( \
 
 [ -z "$SEGMENT_DIR" ] && errmsg no segment dir
 
+assert_cameraModelInDatabase() {
+  progress "Looking for camera model"
+  JPEG=$(find original_images -maxdepth 1 -name \*.jpeg -print -quit)
+  MODEL=$(exiftool -j -model $JPEG | jq .[0].Model -r)
+  if [ -n "$MODEL" ] ; then
+    if grep -q -e "^$MODEL;" $SENSOR_WIDTH_DB ; then 
+      progress "Found $MODEL in $SENSOR_WIDTH_DB"
+    else
+      errmsg "$MODEL not found in $SENSOR_WIDTH_DB"
+    fi
+  else
+      progress "Camera model not found in EXIF"
+  fi
+}
+
 sfm_init() {
   if [ -f $SEGMENT_DIR/openMVG/sfm_data.json ]
   then
@@ -309,6 +324,7 @@ process_segment() {
   cd $SEGMENT_DIR || errmsg "no such directory: $SEGMENT_DIR"
   progress "$SEGMENT_DIR"
 
+  assert_cameraModelInDatabase
   sfm_init
   compute_features
   compute_matches
