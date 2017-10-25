@@ -295,7 +295,7 @@ assert_hasPoints() {
   while [ -f $1 ] ; do
     f=$1
     shift
-    VERTEX_COUNT=$(grep element.vertex $f | awk '{print $NF}')
+    VERTEX_COUNT=$(grep --text element.vertex $f | awk '{print $NF}')
     if [ -z "$VERTEX_COUNT" ] ; then
       errmsg "Cannot read \"element vertex\" property from $f"
     fi
