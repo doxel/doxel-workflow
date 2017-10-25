@@ -25,7 +25,7 @@ PASSWORD=${PASSWORD:-worker}
 export DOCKER_DEFAULTS=${DOCKER_DEFAULTS:-"-v /mnt:/mnt -it --rm=true --cpus=$(nproc)"}
 
 REQUIRED_POINTS_AFTER_OPENMVG=${REQUIRED_POINTS_AFTER_OPENMVG:-10}
-REQUIRED_POINTS_AFTER_PMVS=${REQUIRED_POINTS_AFTER_PMVS=:-5000}
+REQUIRED_POINTS_AFTER_PMVS=${REQUIRED_POINTS_AFTER_PMVS:-5000}
 
 dependencies() {
   for cmd in node jq parallel mogrify exiftool ; do
@@ -114,10 +114,14 @@ assert_cameraModelInDatabase() {
     if grep -q -e "^$MODEL;" $SENSOR_WIDTH_DB ; then 
       progress "Found $MODEL in $SENSOR_WIDTH_DB"
     else
-      errmsg "$MODEL not found in $SENSOR_WIDTH_DB"
+      if [ "$MODEL" != "null" ] ; then
+        errmsg "$MODEL not found in $SENSOR_WIDTH_DB"
+      else
+        progress "Camera model not found in EXIF for $JPEG"
+      fi
     fi
   else
-      progress "Camera model not found in EXIF"
+      progress "Camera model not found in EXIF for $JPEG"
   fi
 }
 
