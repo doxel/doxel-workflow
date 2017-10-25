@@ -68,7 +68,7 @@ dependencies
 
 # login
 
-if [ -z "$AUTHORIZATION" ] ; then
+if [ -z "$ACCESS_TOKEN" ] ; then
   ACCESS_TOKEN=$( \
     loopback-login \
       -u $USERNAME \
@@ -78,11 +78,11 @@ if [ -z "$AUTHORIZATION" ] ; then
   )
   [ -z "$ACCESS_TOKEN" ] && errmsg login failed
 
-  AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
-  [ -z "$AUTHORIZATION" ] && errmsg no authorization
-  USER_ID=$(jq -r .userId <<< $ACCESS_TOKEN)
 fi
 
+AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
+[ -z "$AUTHORIZATION" ] && errmsg no authorization
+USER_ID=$(jq -r .userId <<< $ACCESS_TOKEN)
 [ -z "$USER_ID" ] && errmsg no user id
 
 # get job info
