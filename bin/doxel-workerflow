@@ -294,8 +294,7 @@ assert_hasPoints() {
     TOTAL=$((TOTAL+VERTEX_COUNT))
   done
   if [ $TOTAL -lt $1 ] ; then
-    progress "Discarded: $TOTAL points"
-    completed $(date +%s)
+    completed $(date +%s) "Discarded: $TOTAL points"
     exit
   fi
 }
@@ -335,7 +334,7 @@ inject() {
 
 completed(){
   progress "Set job as completed"
-  log '{"msg": "completed", "t": '$1'}' || exit
+  log '{"msg": "completed", "t": '$1', "completion_status": "'$2'"}' || exit
 }
 
 process_segment() {
@@ -356,7 +355,7 @@ process_segment() {
   assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_PMVS
   viewer
   inject
-  completed $(date -r $SEGMENT_DIR/processed +%s)
+  completed $(date -r $SEGMENT_DIR/processed +%s) ok
 }
 
 process_segment $SEGMENT_DIR
