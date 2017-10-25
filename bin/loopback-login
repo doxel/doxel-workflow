@@ -60,7 +60,22 @@ URL=$1/users/login
 [ -n "$USERNAME" ] && USERID="username=$USERNAME"
 [ -n "$EMAIL" ] && USERID="email=$EMAIL"
 [ -n "$USERID" -a -n "$PASSWORD" ] && CREDENTIALS="$USERID&password=$PASSWORD"
-[ -z "$CREDENTIALS" ] && usage
+if [ -z "$CREDENTIALS" ] ; then
+  if [ -z "$USERID" ] ; then 
+    while [ -z "$USERID" ] ; do
+      read -p "login: " USERID
+    done
+    if grep -q @ <<< $USERID ; then
+      USERID="email=$USERID"
+    else
+      USERID="username=$USERID"
+    fi
+  fi
+  while [ -z "$PASSWORD" ] ; do
+    read -s -p "password: "  PASSWORD
+  done
+  CREDENTIALS="$USERID&password=$PASSWORD"
+fi
 
 wget \
   -q \
