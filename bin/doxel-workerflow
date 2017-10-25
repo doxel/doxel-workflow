@@ -22,6 +22,9 @@ USERNAME=${USERNAME:-worker}
 PASSWORD=${PASSWORD:-worker}
 export DOCKER_DEFAULTS=${DOCKER_DEFAULTS:-"-v /mnt:/mnt -it --rm=true --cpus=$(nproc)"}
 
+REQUIRED_POINTS_AFTER_OPENMVG=${REQUIRED_POINTS_AFTER_OPENMVG:-10}
+REQUIRED_POINTS_AFTER_PMVS=${REQUIRED_POINTS_AFTER_PMVS=:-5000}
+
 dependencies() {
   for cmd in node jq parallel mogrify exiftool ; do
     if ! which $cmd > /dev/null ; then
@@ -265,19 +268,36 @@ cmvspmvs() {
   then
     progress "PMVS models directory already exist"
   else
-   progress "Running CMVS/PMVS"
-   cmvs $(pwd)/PMVS/ 80 $NUM_THREADS \
-   && genOption $(pwd)/PMVS/ \
-   && sed -i "s# pmvs# $(pwd)/PMVS#g" PMVS/pmvs.sh \
-   && bash PMVS/pmvs.sh
+    progress "Running CMVS/PMVS"
+    cmvs $(pwd)/PMVS/ 80 $NUM_THREADS \
+    && genOption $(pwd)/PMVS/ \
+    && sed -i "s# pmvs# $(pwd)/PMVS#g" PMVS/pmvs.sh \
+    && bash PMVS/pmvs.sh
 
-   EXIT_CODE=$?
-   if [ $EXIT_CODE -ne 0 ] ; then
-    #  [ -d $SEGMENT_DIR/PMVS/models ] && rm -r $SEGMENT_DIR/PMVS/models
-     errmsg "CMVS/PMVS exited with status $EXIT_CODE"
-   fi
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -ne 0 ] ; then
+     #  [ -d $SEGMENT_DIR/PMVS/models ] && rm -r $SEGMENT_DIR/PMVS/models
+      errmsg "CMVS/PMVS exited with status $EXIT_CODE"
+    fi
+  fi
+}
 
- fi
+assert_hasPoints() {
+  TOTAL=0
+  while [ -f $1 ] ; do
+    f=$1
+    shift
+    VERTEX_COUNT=$(grep element.vertex $f | awk '{print $NF}')
+    if [ -z "$VERTEX_COUNT" ] ; then
+      errmsg "Cannot read \"element vertex\" property from $f"
+    fi
+    TOTAL=$((TOTAL+VERTEX_COUNT))
+  done
+  if [ $TOTAL -lt $1 ] ; then
+    progress "Discarded: $TOTAL points"
+    completed $(date +%s)
+    exit
+  fi
 }
 
 viewer() {
@@ -315,7 +335,7 @@ inject() {
 
 completed(){
   progress "Set job as completed"
-  log '{"msg": "completed", "t": '$(date -r $SEGMENT_DIR/processed +%s)'}' || exit
+  log '{"msg": "completed", "t": '$1'}' || exit
 }
 
 process_segment() {
@@ -330,12 +350,13 @@ process_segment() {
   compute_matches
   global_sfm
   compute_structure_from_known_poses
+  assert_hasPoints openMVG/robust.ply $REQUIRED_POINTS_AFTER_OPENMVG
   openmvg2pmvs
   cmvspmvs
+  assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_PMVS
   viewer
   inject
-  completed
-
+  completed $(date -r $SEGMENT_DIR/processed +%s)
 }
 
 process_segment $SEGMENT_DIR
