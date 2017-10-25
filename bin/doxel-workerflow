@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see http://www.gnu.org/licenses/.
 
+[ -f ~/.doxelconfig ] && . ~/.doxelconfig
+
 SENSOR_WIDTH_DB=${SENSOR_WIDTH_DB:-/usr/share/openMVG/sensor_width_camera_database.txt}
 NUM_THREADS=${NUM_THREADS:-$(nproc)}
 
@@ -66,19 +68,21 @@ dependencies
 
 # login
 
-ACCESS_TOKEN=$( \
-  loopback-login \
-    -u $USERNAME \
-    -p $PASSWORD \
-    --no-check-certificate \
-    $URL \
-)
-[ -z "$ACCESS_TOKEN" ] && errmsg login failed
+if [ -z "$AUTHORIZATION" ] ; then
+  ACCESS_TOKEN=$( \
+    loopback-login \
+      -u $USERNAME \
+      -p $PASSWORD \
+      --no-check-certificate \
+      $URL \
+  )
+  [ -z "$ACCESS_TOKEN" ] && errmsg login failed
 
-AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
-[ -z "$AUTHORIZATION" ] && errmsg no authorization
+  AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
+  [ -z "$AUTHORIZATION" ] && errmsg no authorization
+  USER_ID=$(jq -r .userId <<< $ACCESS_TOKEN)
+fi
 
-USER_ID=$(jq -r .userId <<< $ACCESS_TOKEN)
 [ -z "$USER_ID" ] && errmsg no user id
 
 # get job info
