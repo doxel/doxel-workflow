@@ -302,7 +302,7 @@ assert_hasPoints() {
     TOTAL=$((TOTAL+VERTEX_COUNT))
   done
   if [ $TOTAL -lt $1 ] ; then
-    completed $(date +%s) "Discarded: $TOTAL points"
+    errmsg "Pointcloud discarded: $TOTAL points"
     exit
   fi
 }
@@ -342,7 +342,7 @@ inject() {
 
 completed(){
   progress "Set job as completed"
-  log '{"msg": "completed", "t": '$1', "completion_status": "'$2'"}' || exit
+  log '{"completed": true, "msg": "'$2'", "t": '$1'}' || exit
 }
 
 process_segment() {
@@ -357,9 +357,11 @@ process_segment() {
   compute_matches
   global_sfm
   compute_structure_from_known_poses
+  progress "Assert openMVG pointcloud has points" 
   assert_hasPoints openMVG/robust.ply $REQUIRED_POINTS_AFTER_OPENMVG
   openmvg2pmvs
   cmvspmvs
+  progress "Assert PMVS pointcloud has points" 
   assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_PMVS
   viewer
   inject
