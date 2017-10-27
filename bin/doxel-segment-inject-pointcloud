@@ -29,6 +29,15 @@ exit 1
 
 }
 
+dependencies() {
+  for cmd in node jq loopback-login wget ; do
+    if ! which $cmd > /dev/null ; then
+      echo Command $cmd is required !
+      exit 1
+    fi
+  done
+}
+
 # parse command line options
 if ! options=$(getopt -o ha:ns: -l help,authorization:,no-check-certificate,segment -- "$@")
 then
@@ -54,7 +63,18 @@ done
 [ $# -ne 1 ] && usage
 [ -z "$SEGMENT" ] && usage
 
-URL=$1/Segments/inject-pointcloud/$SEGMENT
+API=$1
+URL=$API/Segments/inject-pointcloud/$SEGMENT
+
+if [ -z "$AUTHORIZATION" ] ; then
+   ACCESS_TOKEN=$(loopback-login $API)
+   if [ -z "$ACCESS_TOKEN" ] ; then
+     echo unauthorized >&2
+   fi
+
+   AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
+
+fi
 
 wget \
   -q \

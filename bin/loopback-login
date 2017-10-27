@@ -74,6 +74,7 @@ if [ -z "$CREDENTIALS" ] ; then
   while [ -z "$PASSWORD" ] ; do
     read -s -p "password: "  PASSWORD
   done
+  echo >&2
   CREDENTIALS="$USERID&password=$PASSWORD"
 fi
 
