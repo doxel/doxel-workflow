@@ -29,6 +29,17 @@ exit 1
 
 }
 
+assert_dependencies() {
+  for cmd in jq loopback-login wget ; do
+    if ! which $cmd > /dev/null ; then
+      echo Command $cmd is required !
+      exit 1
+    fi
+  done
+}
+
+assert_dependencies
+
 # parse command line options
 if ! options=$(getopt -o ha:ns: -l help,authorization:,no-check-certificate,segment -- "$@")
 then
@@ -54,7 +65,18 @@ done
 [ $# -ne 1 ] && usage
 [ -z "$SEGMENT" ] && usage
 
-URL=$1/Segments/path/$SEGMENT
+API=$1
+URL=$API/Segments/path/$SEGMENT
+
+if [ -z "$AUTHORIZATION" ] ; then
+   ACCESS_TOKEN=$(loopback-login $API)
+   if [ -z "$ACCESS_TOKEN" ] ; then
+     echo unauthorized >&2
+   fi
+
+   AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
+
+fi
 
 wget \
   -q \
