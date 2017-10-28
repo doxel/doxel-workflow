@@ -320,7 +320,6 @@ viewer() {
        [ -d $SEGMENT_DIR/potree ] && rm -r $SEGMENT_DIR/potree
       errmsg "viewer.sh exited with status $EXIT_CODE" >&2
     fi
-    touch $SEGMENT_DIR/processed
 
   fi
 }
@@ -365,7 +364,7 @@ process_segment() {
   assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_PMVS
   viewer
   inject
-  completed $(date -r $SEGMENT_DIR/processed +%s) ok
+  completed $(date +%s) ok
 }
 
 process_segment $SEGMENT_DIR
