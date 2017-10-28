@@ -20,7 +20,7 @@ SENSOR_WIDTH_DB=${SENSOR_WIDTH_DB:-/usr/share/openMVG/sensor_width_camera_databa
 NUM_THREADS=${NUM_THREADS:-$(nproc)}
 
 URL=${URL:-http://localhost:3001/api}
-USERNAME=${USERNAME:-worker}
+LB_USERNAME=${LB_USERNAME:-worker}
 PASSWORD=${PASSWORD:-worker}
 export DOCKER_DEFAULTS=${DOCKER_DEFAULTS:-"-v /mnt:/mnt -it --rm=true --cpus=$(nproc)"}
 
@@ -71,7 +71,7 @@ dependencies
 if [ -z "$ACCESS_TOKEN" ] ; then
   ACCESS_TOKEN=$( \
     loopback-login \
-      -u $USERNAME \
+      -u $LB_USERNAME \
       -p $PASSWORD \
       --no-check-certificate \
       $URL \

@@ -43,7 +43,7 @@ eval set -- "$options"
 while [ $# -gt 0 ] ; do
     case $1 in
     -h|--help) usage ;;
-    -u|--username) USERNAME=$2 ; shift ;;
+    -u|--username) LB_USERNAME=$2 ; shift ;;
     -e|--email) EMAIL=$2 ; shift ;;
     -p|--password) PASSWORD=$2 ; shift ;;
     -n|--no-check-certificate) NOCHECKCERTIFICATE=--no-check-certificate ;;
@@ -57,25 +57,25 @@ done
 [ $# -ne 1 ] && usage
 URL=$1/users/login
 
-[ -n "$USERNAME" ] && USERID="username=$USERNAME"
-[ -n "$EMAIL" ] && USERID="email=$EMAIL"
-[ -n "$USERID" -a -n "$PASSWORD" ] && CREDENTIALS="$USERID&password=$PASSWORD"
+[ -n "$LB_USERNAME" ] && LB_USERID="username=$LB_USERNAME"
+[ -n "$EMAIL" ] && LB_USERID="email=$EMAIL"
+[ -n "$LB_USERID" -a -n "$PASSWORD" ] && CREDENTIALS="$LB_USERID&password=$PASSWORD"
 if [ -z "$CREDENTIALS" ] ; then
-  if [ -z "$USERID" ] ; then 
-    while [ -z "$USERID" ] ; do
-      read -p "login: " USERID
+  if [ -z "$LB_USERID" ] ; then 
+    while [ -z "$LB_USERID" ] ; do
+      read -p "login: " LB_USERID
     done
-    if grep -q @ <<< $USERID ; then
-      USERID="email=$USERID"
+    if grep -q @ <<< $LB_USERID ; then
+      LB_USERID="email=$LB_USERID"
     else
-      USERID="username=$USERID"
+      LB_USERID="username=$LB_USERID"
     fi
   fi
   while [ -z "$PASSWORD" ] ; do
     read -s -p "password: "  PASSWORD
   done
   echo >&2
-  CREDENTIALS="$USERID&password=$PASSWORD"
+  CREDENTIALS="$LB_USERID&password=$PASSWORD"
 fi
 
 wget \
