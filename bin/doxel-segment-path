@@ -29,6 +29,8 @@ exit 1
 
 }
 
+[ -f ~/.doxelconfig ] && . ~/.doxelconfig
+
 assert_dependencies() {
   for cmd in jq loopback-login wget ; do
     if ! which $cmd > /dev/null ; then
@@ -62,20 +64,23 @@ while [ $# -gt 0 ] ; do
     shift
 done
 
-[ $# -ne 1 ] && usage
+if [ $# -eq 1 ] ; then 
+  API=$1
+fi
+
+[ -z "$API" ] && usage
 [ -z "$SEGMENT" ] && usage
 
-API=$1
 URL=$API/Segments/path/$SEGMENT
 
 if [ -z "$AUTHORIZATION" ] ; then
-   ACCESS_TOKEN=$(loopback-login $API)
-   if [ -z "$ACCESS_TOKEN" ] ; then
-     echo unauthorized >&2
-   fi
-
+   [ -z "$ACCESS_TOKEN" ] && ACCESS_TOKEN=$(loopback-login $API)
    AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
+fi
 
+if [ -z "$AUTHORIZATION" ] ; then
+  echo unauthorized >&2
+  exit
 fi
 
 wget \
@@ -84,3 +89,5 @@ wget \
   $NOCHECKCERTIFICATE \
   $URL \
   -O -
+
+echo
