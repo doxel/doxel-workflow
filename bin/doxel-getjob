@@ -10,6 +10,10 @@ SYNOPSIS
 
 DESCRIPTION
        Request a segment to process. Returns a job record json.
+
+       When no segment is secified, the first segment marked
+       as 'queued' is selected.
+
        The same job record will be returned until the
        job as been marked as 'completed'.
 
@@ -23,13 +27,16 @@ DESCRIPTION
 
        -n, --no-check-certificate
 
+       -s, --segment
+             optional: segment id or timestamp
+
 EOF
 exit 1
 
 }
 
 # parse command line options
-if ! options=$(getopt -o ha:n -l help,authorization:,no-check-certificate -- "$@")
+if ! options=$(getopt -o ha:ns: -l help,authorization:,no-check-certificate,segment -- "$@")
 then
     # something went wrong, getopt will put out an error message for us
     exit 1
@@ -42,6 +49,7 @@ while [ $# -gt 0 ] ; do
     -h|--help) usage ;;
     -a|--authorization) AUTHORIZATION=$2 ; shift ;;
     -n|--no-check-certificate) NOCHECKCERTIFICATE=--no-check-certificate ;;
+    -s|--segment) SEGMENT=$2 ; shift ;;
     (--) shift; break;;
     (-*) echo "$(basename $0): error - unrecognized option $1" 1>&2; exit 1;;
     (*) break;;
@@ -52,6 +60,8 @@ done
 [ $# -ne 1 ] && usage
 
 URL=$1/jobs/get
+
+[ ${#SEGMENT} -ne 0 ] && URL="$URL?s=$SEGMENT"
 
 wget \
   -q \
