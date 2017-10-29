@@ -235,7 +235,7 @@ if [ -n "$SEGMENT_ID" ] ; then
   RESULT=$(doxel-getjob -s $SEGMENT_ID -a $AUTHORIZATION $URL)
 else
   RESULT=$(doxel-getjob -a $AUTHORIZATION $URL)
-endif
+fi
 
 [ -z "$RESULT" ] && errmsg no reply
 if [ "$RESULT" == "{}" ] ; then
