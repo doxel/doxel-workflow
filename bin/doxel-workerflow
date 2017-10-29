@@ -231,7 +231,12 @@ if [ -z "$AUTHORIZATION" ] ; then
 fi
 
 # get job info
-RESULT=$(doxel-getjob -s $SEGMENT_ID -a $AUTHORIZATION $URL)
+if [ -n "$SEGMENT_ID" ] ; then
+  RESULT=$(doxel-getjob -s $SEGMENT_ID -a $AUTHORIZATION $URL)
+else
+  RESULT=$(doxel-getjob -a $AUTHORIZATION $URL)
+endif
+
 [ -z "$RESULT" ] && errmsg no reply
 if [ "$RESULT" == "{}" ] ; then
   progress No job available
