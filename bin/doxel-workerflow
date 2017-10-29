@@ -14,20 +14,162 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see http://www.gnu.org/licenses/.
 
-[ -f ~/.doxelconfig ] && . ~/.doxelconfig
+DOXELCONFIG=~/.doxelconfig
+
+usage() {
+cat << EOF
+NAME
+       $(basename $0) - process one job
+
+SYNOPSIS
+       $(basename $0) [OPTION]... URL
+
+DESCRIPTION
+       Process a queued segment, or the segment specified with -s
+
+       A worker can process only one job at a time: if a non completed
+       job is found for the user, the same job will be run again, or an
+       error will be thrown (if a another segment has been specified).
+
+       You can set environment variables in ~/.doxelconfig or the file
+       specified with option --config (see ENVIRONMENT VARIABLES below)
+
+       You can override default options with (in order), environment variables
+       and command line parameters.
+
+       If no credentials are found in the config file, environment variables,
+       and command line parameters, the login and password will be asked.
+
+       URL
+             the api endpoint eg "http://localhost:3001/api"
+
+       -h, --help
+
+       -n, --no-check-certificate
+   
+       -c, --config
+             config to use instead of ~/.doxelconfig
+
+       -u, --username
+             worker username
+
+       -p, --password
+             worker password
+
+       -a, --authorization
+             worker access token id, if already logged in
+
+       -s, --segment
+             the segment id or timestamp
+
+       -w, --sensor-width-database
+             the sensor width database. Do not create custom databases,
+             update the main file instead.
+
+       -f, --force
+          delete previous results
+
+ENVIRONMENT VARIABLES
+       The following environment variables can optionally be set in
+       the config file, the shell or on the command line:
+
+         API
+            the REST api URL
+
+         ACCESS_TOKEN
+            the access token
+
+         AUTHORIZATION
+            the access token id
+
+         LB_USERNAME
+            the user name (needs to have role 'worker' or 'admin')
+
+         PASSWORD
+            the password
+
+         NOCHECKCERTIFICATE
+            ignore https certificate when set to --no-check-certificate
+
+         SENSOR_WIDTH_DB
+
+         DOCKER_DEFAULTS
+
+         DOCKER_OPTIONS
+
+         NUM_THREADS
+
+         SFMINIT_IMAGELISTING_OPTIONS
+
+         COMPUTEFEATURES_OPTIONS
+
+         COMPUTEMATCHES_OPTIONS
+
+         GLOBALSFM_OPTIONS
+
+         COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS
+
+         OPENMVG2PMVS_OPTIONS
+
+EOF
+exit 1
+
+}
+
+# parse command line options
+if ! options=$(getopt -o ha:ns:,w:,u:,p:,D:,d:,t: -l help,authorization:,no-check-certificate,segment,sensor-width-database:,username:,password:,docker-defaults:,docker-options:,threads: -- "$@")
+then
+    # something went wrong, getopt will put out an error message for us
+    exit 1
+fi
+
+eval set -- "$options"
+
+while [ $# -gt 0 ] ; do
+    case $1 in
+    -h|--help) usage ;;
+    -a|--authorization) AUTHORIZATION=$2 ; shift ;;
+    -n|--no-check-certificate) NOCHECKCERTIFICATE=--no-check-certificate ;;
+    -s|--segment) SEGMENT_ID="$2" ; shift ;;
+    -w|--sensor-width-database) SENSOR_WIDTH_DB=$2 ; shift ;;
+    -u|--username) LB_USERNAME=$2 ; shift ;;
+    -p|--password) PASSWORD=$2 ; shift ;;
+    -D|--docker-defaults) DOCKER_DEFAULTS=$2 ; shift ;;
+    -d|--docker-options) DOCKER_OPTIONS=$2 ; shift ;;
+    -t|--threads) NUM_THREADS=$2 ; shift ;;
+    -c|--config) DOXELCONFIG=$2 ; shift ;;
+    (--) shift; break;;
+    (-*) echo "$(basename $0): error - unrecognized option $1" 1>&2; exit 1;;
+    (*) break;;
+    esac
+    shift
+done
+
+if [ -f "$DOXELCONFIG ] ; then
+ . $DOXELCONFIG
+else
+  if [ "$DOXELCONFIG" != ~/.doxelconfig ] ; then
+    echo "file not found: $DOXELCONFIG"
+    exit 1
+  fi
+fi
+
+if [ $# -eq 1 ] ; then 
+  API=$1
+fi
 
 SENSOR_WIDTH_DB=${SENSOR_WIDTH_DB:-/usr/share/openMVG/sensor_width_camera_database.txt}
 NUM_THREADS=${NUM_THREADS:-$(nproc)}
 
-URL=${URL:-http://localhost:3001/api}
+URL=${API:-http://localhost:3001/api}
 LB_USERNAME=${LB_USERNAME:-worker}
 PASSWORD=${PASSWORD:-worker}
-export DOCKER_DEFAULTS=${DOCKER_DEFAULTS:-"-v /mnt:/mnt -it --rm=true --cpus=$(nproc)"}
+export DOCKER_DEFAULTS=${DOCKER_DEFAULTS:-"-v /mnt:/mnt -it --rm=true --cpus=$NUM_THREADS"}
 
 REQUIRED_POINTS_AFTER_OPENMVG=${REQUIRED_POINTS_AFTER_OPENMVG:-10}
 REQUIRED_POINTS_AFTER_PMVS=${REQUIRED_POINTS_AFTER_PMVS:-5000}
 
-dependencies() {
+assert_dependencies() {
   for cmd in node jq parallel mogrify exiftool ; do
     if ! which $cmd > /dev/null ; then
       echo Command $cmd is required !
@@ -64,29 +206,32 @@ log() {
   [ -n "$SEGMENT_DIR" ] && echo "$*" >> $SEGMENT_DIR/LOG
 }
 
-dependencies
+assert_dependencies
 
 # login
 
-if [ -z "$ACCESS_TOKEN" ] ; then
-  ACCESS_TOKEN=$( \
-    loopback-login \
-      -u $LB_USERNAME \
-      -p $PASSWORD \
-      --no-check-certificate \
-      $URL \
-  )
-  [ -z "$ACCESS_TOKEN" ] && errmsg login failed
+if [ -z "$AUTHORIZATION" ] ; then
+  if [ -z "$ACCESS_TOKEN" ] ; then
+    ACCESS_TOKEN=$( \
+      loopback-login \
+        -u $LB_USERNAME \
+        -p $PASSWORD \
+        $NOCHECKCERTIFICATE \
+        $API \
+    )
+    [ -z "$ACCESS_TOKEN" ] && errmsg login failed
 
+  fi
+  AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
 fi
 
-AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
-[ -z "$AUTHORIZATION" ] && errmsg no authorization
-USER_ID=$(jq -r .userId <<< $ACCESS_TOKEN)
-[ -z "$USER_ID" ] && errmsg no user id
+if [ -z "$AUTHORIZATION" ] ; then
+  echo unauthorized >&2
+  exit
+fi
 
 # get job info
-RESULT=$(doxel-getjob -a $AUTHORIZATION $URL)
+RESULT=$(doxel-getjob -s $SEGMENT_ID -a $AUTHORIZATION $URL)
 [ -z "$RESULT" ] && errmsg no reply
 if [ "$RESULT" == "{}" ] ; then
   progress No job available
@@ -98,6 +243,7 @@ JOB_ID=$(jq -r .result.job.id <<< $RESULT)
 
 SEGMENT_ID=$(jq -r .result.job.segmentId <<< $RESULT)
 [ "$SEGMENT_ID" == "null" ] && errmsg no segment id
+echo "=== Segment: $SEGMENT_ID"
 
 SEGMENT_DIR=$( \
   doxel-segment-path -s $SEGMENT_ID -a $AUTHORIZATION $URL \
