@@ -145,8 +145,8 @@ while [ $# -gt 0 ] ; do
     shift
 done
 
-if [ -f "$DOXELCONFIG ] ; then
- . $DOXELCONFIG
+if [ -f "$DOXELCONFIG" ] ; then
+   . $DOXELCONFIG
 else
   if [ "$DOXELCONFIG" != ~/.doxelconfig ] ; then
     echo "file not found: $DOXELCONFIG"
