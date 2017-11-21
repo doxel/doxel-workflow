@@ -184,13 +184,13 @@ encodeURIComponent() {
 
 errmsg() {
   echo "*** ERROR: $*" >&2
-  log '{"error": true, "msg": "'$*'", "t": '$(date +%s)'}'
+  log '{"error": true, "msg": "'$*'", "t": '$(date +%s000)'}'
   exit 1
 }
 
 progress() {
   echo "=== $*" >&2
-  log '{"msg": "'$*'", "t": '$(date +%s)'}'
+  log '{"msg": "'$*'", "t": '$(date +%s000)'}'
 }
 
 log() {
@@ -515,7 +515,7 @@ process_segment() {
   assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_PMVS
   viewer
   inject
-  completed $(date +%s) ok
+  completed $(date +%s000) ok
 }
 
 process_segment $SEGMENT_DIR
