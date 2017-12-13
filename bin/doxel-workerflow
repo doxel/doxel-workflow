@@ -237,6 +237,10 @@ else
   RESULT=$(doxel-getjob -a $AUTHORIZATION $URL)
 fi
 
+EXITCODE=$?
+
+[ $EXITCODE -ne 0 ] && errmsg doxel-getjob returned error $EXITCODE
+
 [ -z "$RESULT" ] && errmsg no reply
 if [ "$RESULT" == "{}" ] ; then
   progress No job available
