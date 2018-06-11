@@ -69,3 +69,23 @@ wget \
   $NOCHECKCERTIFICATE \
   $URL \
   -O -
+
+ERR=$?
+
+echo
+
+ERRMSG=(\
+  'Ok' \
+  'Generic error code' \
+  'Parse error' \
+  'File I/O error' \
+  'Network failure' \
+  'SSL verification failure' \
+  'Username/password authentication failure' \
+  'Protocol errors' \
+  'Server issued an error response'
+)
+
+[ $ERR -ne 0 ] && echo "$(basename 0): ${ERRMSG[$ERR]} ($ERR)" >&2
+
+exit $ERR
