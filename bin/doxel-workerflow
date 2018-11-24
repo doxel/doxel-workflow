@@ -644,7 +644,7 @@ fssrecon() {
   then
     progress "FSS already done"
   else
-    progress Running smvsrecon
+    progress Running fssrecon
     FSSRECON_OPTIONS=${FSSRECON_OPTIONS:-\
       --scale-factor=1 \
       --refine-octree=0 \
