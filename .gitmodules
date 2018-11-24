@@ -13,3 +13,6 @@
 [submodule "potreeconverter-docker"]
 	path = potreeconverter-docker
 	url = https://github.com/doxel/potreeconverter-docker
+[submodule "mve-docker"]
+	path = mve-docker
+	url = https://github.com/doxel/mve-docker
