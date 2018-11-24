@@ -1,5 +1,5 @@
 
-SUBDIRS = cmvspmvs-docker openmvg-docker potreeconverter-docker jpeg_metadata_size bin doxel-viewer
+SUBDIRS = cmvspmvs-docker openmvg-docker potreeconverter-docker jpeg_metadata_size bin doxel-viewer mve-docker
 
 .PHONY: subdirs $(SUBDIRS)
 
