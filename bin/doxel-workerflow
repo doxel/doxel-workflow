@@ -167,7 +167,7 @@ PASSWORD=${PASSWORD:-worker}
 export DOCKER_DEFAULTS=${DOCKER_DEFAULTS:-"-v /mnt:/mnt -it --rm=true --cpus=$NUM_THREADS"}
 
 REQUIRED_POINTS_AFTER_OPENMVG=${REQUIRED_POINTS_AFTER_OPENMVG:-10}
-REQUIRED_POINTS_AFTER_PMVS=${REQUIRED_POINTS_AFTER_PMVS:-5000}
+REQUIRED_POINTS_AFTER_DENSIFICATION=${REQUIRED_POINTS_AFTER_DENSIFICATION:-5000}
 
 assert_dependencies() {
   for cmd in node jq parallel mogrify exiftool ; do
@@ -261,6 +261,127 @@ SEGMENT_DIR=$( \
 
 [ -z "$SEGMENT_DIR" ] && errmsg no segment dir
 
+
+if [ -z "$SFMINIT_IMAGELISTING_OPTIONS" ] ; then
+  O=""
+  focal=$(jq -r .result.job.config.sfm_imagelisting.focal <<< $RESULT) | sed -e s/^null$//
+  focal=${focal//[^0-9\.]/}
+  [ -n "$focal" ] && O="$O --focal $focal"
+  intrinsics=$(jq -r .result.job.config.sfm_imagelisting.intrinsics <<< $RESULT) | sed -e s/^null$//
+  intrinsics=${intrinsics//[^0-9\.;]/}
+  [ -n "intrinsics" ] && O="$O --intrinsics '$intrinsics'"
+  camera_model=$(jq -r .result.job.config.sfm_imagelisting.camera_model <<< $RESULT) | sed -e s/^null$//
+  camera_model=${camera_model//[^0-9]/}
+  [ -n "$camera_model" ] && O="$O --camera_model $camera_model"
+  group_camera_model=$(jq -r .result.job.config.sfm_imagelisting.group_camera_model <<< $RESULT) | sed -e s/^null$//
+  group_camera_model=${group_camera_model//[^0-9]/}
+  [ -n "$group_camera_model" ] && O="$O --group_camera_model $group_camera_model"
+  use_pose_prior=$(jq -r .result.job.config.sfm_imagelising.use_pose_prior <<< $RESULT) | sed -e s/^null$//
+  use_pose_prior=${use_pose_prior//[^0-9\.\;]/}
+  [ -n "$use_pose_prior" ] && O="$O --use_pose_prior $use_pose_prior"
+  SFMINIT_IMAGELISTING_OPTIONS=$O
+fi
+
+if [ -z "$COMPUTEFEATURES_OPTIONS" ] ; then
+  O=""
+  describer_method=$(jq -r .result.job.config.computefeatures.describer_method <<< $RESULT) | sed -e s/^null$//
+  describer_method=${describer_method//[^A-Z_]/}
+  [ -n "$describer_method" ] && O="$O --describer_method $describer_method"
+  upright=$(jq -r .result.job.config.computefeatures.upright <<< $RESULT) | sed -e s/^null$//
+  upright=${upright//[^0-1]/}
+  [ -n "$upright" ] && O="$O --upright $upright"
+  describer_preset=$(jq -r .result.job.config.computefeatures.describer_preset <<< $RESULT) | sed -e s/^null$//
+  describer_preset=${describer_preset//[^A-Z]/}
+  [ -n "$describer_preset" ] && O="$O --describerPreset $describer_preset"
+  COMPUTEFEATURES_OPTIONS=$O
+fi
+
+if [ -z "$COMPUTEMATCHES_OPTIONS" ] ; then
+  O=""
+  ratio=$(jq -r .result.job.config.computematches.ratio <<< $RESULT) | sed -e s/^null$//
+  ratio=${ratio//[^0-9\.]/}
+  [ -n "$ratio" ] && O="$O --ratio $ratio"
+  geometric_model=$(jq -r .result.job.config.computematches.geometric_model <<< $RESULT) | sed -e s/^null$//
+  geometric_model=${geometric_model//[^fehao]/}
+  [ -n "$geometric_model" ] && O="$O --geometric_model $geometric_model"
+  video_mode_matching=$(jq -r .result.job.config.computematches.video_mode_matching <<< $RESULT) | sed -e s/^null$//
+  video_mode_matching=${video_mode_matching//[^0-9]/}
+  [ -n "$video_mode_matching" ] && O="$O --video_mode_matching $video_mode_matching"
+  nearest_matching_method=$(jq -r .result.job.config.computematches.nearest_matching_method <<< $RESULT) | sed -e s/^null$//
+  nearest_matching_method=${nearest_matching_method//[^0-9A-Z]/}
+  [ -n "$nearest_matching_method" ] && O="$O --nearest_matching_method $nearest_matching_method"
+  guided_matching=$(jq -r .result.job.config.computematches.guided_matching <<< $RESULT) | sed -e s/^null$//
+  [ -n "$guided_matching" ] && O="$O --guided_matching"
+  cache_size=$(jq -r .result.job.config.computematches.cache_size <<< $RESULT) | sed -e s/^null$//
+  cache_size=${cache_size//[^0-9]/}
+  [ -n "$cache_size" ] && O="$O --cache_size $cache_size"
+  COMPUTEMATCHES_OPTIONS=$O
+fi
+
+if [ -z "$GLOBALSFM_OPTIONS" ] ; then
+  O=""
+  rotation_averaging=$(jq -r .result.job.config.globalsfm.rotation_averaging <<< $RESULT) | sed -e s/^null$//
+  rotation_averaging=${rotation_averaging//[^0-9]/}
+  [ -n "$rotation_averaging" ] && O="$O --rotationAveraging $rotation_averaging"
+  translation_averaging=$(jq -r .result.job.config.globalsfm.translation_averaging <<< $RESULT) | sed -e s/^null$//
+  translation_averaging=${translation_averaging//[^0-9]/}
+  [ -n "$translation_averaging" ] && O="$O --translationAveraging $translation_averaging"
+  refine_intrinsics=$(jq -r .result.job.config.globalsfm.refine_intrinsics <<< $RESULT) | sed -e s/^null$//
+  refine_intrinsics=${refine_intrinsics//[^A-Z_]/}
+  [ -n "$refine_intrinsics" ] && O="$O --refineIntrinsics $refine_intrinsics"
+  prior_usage=$(jq -r .result.job.config.globalsfm.prior_usage <<< $RESULT) | sed -e s/^null$//
+  [ -n "$prior_usage" ] && O="$O --prior_usage $prior_usage"
+  GLOBALSFM_OPTIONS=$O
+fi
+
+if [ -z "$COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS" ] ; then
+  O=""
+  bundle_adjustment=$(jq -r .result.job.config.compute_structure_from_known_poses.bundle_adjustment <<< $RESULT) | sed -e s/^null$//
+  [ -n "$bundle_adjustment" ] && O="$O --bundle_adjustment"
+  residual_threshold=$(jq -r .result.job.config.compute_structure_from_known_poses.residual_threshold <<< $RESULT) | sed -e s/^null$//
+  residual_threshold=${residual_threshold//[^0-9]\./}
+  [ -n "$residual_threshold" ] && O="$O --residual_threshold $residual_threshold"
+  cache_size=$(jq -r .result.job.config.compute_structure_from_known_poses.cache_size <<< $RESULT) | sed -e s/^null$//
+  cache_size=${cache_size//[^0-9]/}
+  [ -n "$cache_size" ] && O="$O --cache_size $cache_size"
+  COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS=$O
+fi
+
+if [ -z "$OPENMVG2PMVS_OPTIONS" ] ; then
+  O=""
+  resolution=$(jq -r .result.job.config.openmvg2pmvs.resolution <<< $RESULT) | sed -e s/^null$//
+  resolution=${resolution//[^0-9]\./}
+  [ -n "$resolution" ] && O="$O --resolution $resolution"
+  use_vis_data=$(jq -r .result.job.config.openmvg2pmvs.use_vis_data <<< $RESULT) | sed -e s/^null$//
+  [ -n "$use_vis_data" ] && O="$O --useVisData"
+  OPENMVG2PMVS_OPTIONS=$O
+fi
+
+if [ -z "$SMVSRECON_OPTIONS" ] ; then
+  O=""
+  alpha=$(jq -r .result.job.config.smvsrecon.alpha <<< $RESULT) | sed -e s/^null$//
+  alpha=${alpha//[^0-9]\./}
+  [ -n "$alpha" ] && O="$O --alpha $alpha"
+  scale=$(jq -r .result.job.config.smvsrecon.scale <<< $RESULT) | sed -e s/^null$//
+  scale=${scale//[^0-9]\./}
+  [ -n "$scale" ] && O="$O --scale $scale"
+  output_scale=$(jq -r .result.job.config.smvsrecon.output_scale <<< $RESULT) | sed -e s/^null$//
+  output_scale=${output_scale//[^0-9]\./}
+  [ -n "$output_scale" ] && O="$O --output-scale $output_scale"
+  SMVSRECON_OPTIONS=$O
+fi
+
+if [ -z "$FSSRECON_OPTIONS" ] ; then
+  O=""
+  scale_factor=$(jq -r .result.job.config.fssrecon.scale_factor <<< $RESULT) | sed -e s/^null$//
+  scale_factor=${scale_factor//[^0-9]\./}
+  [ -n "$scale_factor" ] && O="$O --scale-factor $scale_factor"
+  refine_octree=$(jq -r .result.job.config.fssrecon.refine_octree <<< $RESULT) | sed -e s/^null$//
+  refine_octree=${refine_octree//[^0-9]/}
+  [ -n "$refine_octree" ] && O="$O --refine-octree $refine_octree"
+  FSSRECON_OPTIONS=$O
+fi
+
 assert_cameraModelInDatabase() {
   progress "Looking for camera model"
   JPEG=$(find original_images -maxdepth 1 -name \*.jpeg -print -quit)
@@ -268,15 +389,27 @@ assert_cameraModelInDatabase() {
   if [ -n "$MODEL" ] ; then
     if grep -q -e "^$MODEL;" $SENSOR_WIDTH_DB ; then 
       progress "Found $MODEL in $SENSOR_WIDTH_DB"
+      [ -z "$focal" ] && SENSOR_WIDTH_OPTION="-d $SENSOR_WIDTH_DB"
     else
       if [ "$MODEL" != "null" ] ; then
-        errmsg "$MODEL not found in $SENSOR_WIDTH_DB"
+        progress "$MODEL not found in $SENSOR_WIDTH_DB"
+        if [ -z "$focal" ] ; then 
+          WIDTH=$(identify -f '%w' $JPEG)
+          ESTIMATED_FOCAL=$(echo $WIDTH * 1.2 | bc -l)
+          SENSOR_WIDTH_OPTION="-f $ESTIMATED_FOCAL"
+        fi
       else
         progress "Camera model not found in EXIF for $JPEG"
+        WIDTH=$(identify -f '%w' $JPEG)
+        ESTIMATED_FOCAL=$(echo $WIDTH * 1.2 | bc -l)
+        SENSOR_WIDTH_OPTION="-f $ESTIMATED_FOCAL"
       fi
     fi
   else
-      progress "Camera model not found in EXIF for $JPEG"
+    progress "Camera model not found in EXIF for $JPEG"
+    WIDTH=$(identify -f '%w' $JPEG)
+    ESTIMATED_FOCAL=$(echo $WIDTH * 1.2 | bc -l)
+    SENSOR_WIDTH_OPTION="-f $ESTIMATED_FOCAL"
   fi
 }
 
@@ -294,7 +427,7 @@ sfm_init() {
     openMVG_main_SfMInit_ImageListing \
       -i $SEGMENT_DIR/original_images \
       -o $SEGMENT_DIR/openMVG \
-      -d $SENSOR_WIDTH_DB \
+      $SENSOR_WIDTH_OPTION \
       $SFMINIT_IMAGELISTING_OPTIONS
 
     EXIT_CODE=$?
@@ -324,7 +457,7 @@ compute_features() {
 
     EXIT_CODE=$?
     if [ $EXIT_CODE -ne 0 ] ; then
-       find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -iname \*.feat -or -iname \*.desc -exec rm '{}' \;
+       find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -iname \*.feat -or -iname \*.desc -exec rm '{}' \; 2> /dev/null
       errmsg openMVG_main_ComputeFeatures exited with status $EXIT_CODE
     fi
   fi
@@ -349,7 +482,7 @@ compute_matches() {
 
     EXIT_CODE=$?
     if [ $EXIT_CODE -ne 0 ] ; then
-      find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -iname matches.putative.\* -exec rm '{}' \;
+      find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -iname matches.putative.\* -exec rm '{}' \; 2>/dev/null
       errmsg "openMVG_main_ComputeMatches exited with status $EXIT_CODE"
     fi
   fi
@@ -373,7 +506,7 @@ global_sfm() {
 
     EXIT_CODE=$?
     if [ $EXIT_CODE -ne 0 ] ; then
-       find $SEGMENT_DIR/openMVG/SfMReconstruction_Report.html -maxdepth 1 -exec rm '{}' \;
+       [ -f $SEGMENT_DIR/openMVG/SfMReconstruction_Report.html ] && rm $SEGMENT_DIR/openMVG/SfMReconstruction_Report.html
       errmsg "openMVG_main_GlobalSfM exited with status $EXIT_CODE"
     fi
   fi
@@ -454,6 +587,82 @@ cmvspmvs() {
       errmsg "CMVS/PMVS exited with status $EXIT_CODE"
     fi
   fi
+  export PLY=$SEGMENT_DIR/PMVS/models/option-????.ply
+}
+
+openmvg2mve2() {
+  if [ -n "$(find $SEGMENT_DIR/MVE/ -maxdepth 1 -name synth_0.out -print -quit)" ]
+  then
+    progress "MVE directory already exist"
+  else
+    progress openMVG_main_openMVG2MVE2
+    OPENMVG2MVE2_OPTIONS=${OPENMVG2MVE2_OPTIONS:-\
+    }
+    progress "options: $OPENMVG2MVE2_OPTIONS"
+    echo $OPENMVG2MVE2_OPTIONS > $SEGMENT_DIR/openMVG/OPENMVG2MVE2_OPTIONS
+    openMVG_main_openMVG2MVE2 \
+      -i $SEGMENT_DIR/openMVG/robust.json \
+      -o $SEGMENT_DIR \
+      $OPENMVG2MVE2_OPTIONS
+
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -ne 0 ] ; then
+       [ -d $SEGMENT_DIR/MVE ] && rm -r $SEGMENT_DIR/MVE
+      errmsg "openMVG_main_openMVG2MVE2 exited with status $EXIT_CODE"
+    fi
+  fi
+}
+
+smvsrecon() {
+  if [ -f $SEGMENT_DIR/MVE/smvs-B1.ply ]
+  then
+    progress "SMVS already done"
+  else
+    progress Running smvsrecon
+    SMVSRECON_OPTIONS=${SMVSRECON_OPTIONS:-\
+      --scale=1 \
+      --output-scale=2 \
+      --alpha=1.0 \
+    }
+    progress "options: $SMVSRECON_OPTIONS"
+    echo $SMVSRECON_OPTIONS > $SEGMENT_DIR/MVE/SMVSRECON_OPTIONS
+    $(which smvsrecon) \
+      $SMVSRECON_OPTIONS \
+      $SEGMENT_DIR/MVE
+
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -ne 0 ] ; then
+      [ -f $SEGMENT_DIR/MVE/smvs-B1.ply ] && rm $SEGMENT_DIR/MVE/smvs-B1.ply
+      errmsg "smvsrecon exited with status $EXIT_CODE"
+    fi
+  fi
+  export PLY=$SEGMENT_DIR/MVE/smvs-B1.ply
+}
+
+fssrecon() {
+  if [ -f $SEGMENT_DIR/MVE/surface_model.ply ]
+  then
+    progress "FSS already done"
+  else
+    progress Running smvsrecon
+    FSSRECON_OPTIONS=${FSSRECON_OPTIONS:-\
+      --scale-factor=1 \
+      --refine-octree=0 \
+    }
+    progress "options: $FSSRECON_OPTIONS"
+    echo $FSSRECON_OPTIONS > $SEGMENT_DIR/MVE/FSSRECON_OPTIONS
+    $(which fssrecon) \
+      $FSSRECON_OPTIONS \
+      $SEGMENT_DIR/MVE/smvs-B1.ply \
+      $SEGMENT_DIR/MVE/surface_model.ply
+
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -ne 0 ] ; then
+      [ -f $SEGMENT_DIR/MVE/surface_modelply ] && rm $SEGMENT_DIR/MVE/surface_model.ply
+      errmsg "fssrecon exited with status $EXIT_CODE"
+    fi
+  fi
+  export PLY=$SEGMENT_DIR/MVE/surface_model.ply
 }
 
 assert_hasPoints() {
@@ -510,6 +719,33 @@ completed(){
   log '{"completed": true, "msg": "'$2'", "t": '$1'}' || exit
 }
 
+sfm() {
+  compute_matches
+  global_sfm
+}
+
+densify() {
+  local method
+  method=$(jq -r $RESULT .result.job.config.densification_method <<< $RESULT)
+  case "$method" in
+    *)
+      openmvg2pmvs # viewer needs undistorted images in PMVS/ directory
+      openmvg2mve2
+      smvsrecon
+      progress "Assert SMVS pointcloud has points" 
+      assert_hasPoints MVE/smvs-B1.ply $REQUIRED_POINTS_AFTER_DENSIFICATION
+      fssrecon
+      ;;
+    pmvs)
+      openmvg2pmvs
+      cmvspmvs
+      progress "Assert PMVS pointcloud has points" 
+      assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_DENSIFICATION
+      ;;
+  esac
+     
+}
+
 process_segment() {
   set -x
   SEGMENT_DIR=$1
@@ -519,15 +755,11 @@ process_segment() {
   assert_cameraModelInDatabase
   sfm_init
   compute_features
-  compute_matches
-  global_sfm
+  sfm
   compute_structure_from_known_poses
   progress "Assert openMVG pointcloud has points" 
   assert_hasPoints openMVG/robust.ply $REQUIRED_POINTS_AFTER_OPENMVG
-  openmvg2pmvs
-  cmvspmvs
-  progress "Assert PMVS pointcloud has points" 
-  assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_PMVS
+  densify
   viewer
   inject
   completed $(date +%s000) ok
