@@ -269,7 +269,7 @@ if [ -z "$SFMINIT_IMAGELISTING_OPTIONS" ] ; then
   [ -n "$focal" ] && O="$O --focal $focal"
   intrinsics=$(jq -r .result.job.config.sfm_imagelisting.intrinsics <<< $RESULT) | sed -e s/^null$//
   intrinsics=${intrinsics//[^0-9\.;]/}
-  [ -n "intrinsics" ] && O="$O --intrinsics '$intrinsics'"
+  [ -n "$intrinsics" ] && O="$O --intrinsics '$intrinsics'"
   camera_model=$(jq -r .result.job.config.sfm_imagelisting.camera_model <<< $RESULT) | sed -e s/^null$//
   camera_model=${camera_model//[^0-9]/}
   [ -n "$camera_model" ] && O="$O --camera_model $camera_model"
@@ -331,6 +331,15 @@ if [ -z "$GLOBALSFM_OPTIONS" ] ; then
   [ -n "$refine_intrinsics" ] && O="$O --refineIntrinsics $refine_intrinsics"
   prior_usage=$(jq -r .result.job.config.globalsfm.prior_usage <<< $RESULT) | sed -e s/^null$//
   [ -n "$prior_usage" ] && O="$O --prior_usage $prior_usage"
+  rotation_averaging=$(jq -r .result.job.config.globalsfm.rotation_averaging <<< $RESULT) | sed -e s/^null$//
+  rotation_averaging=${rotation_averaging//[^0-9]/}
+  [ -n "$rotation_averaging" ] && O="$O -r $rotation_averaging"
+  rotation_averaging=$(jq -r .result.job.config.globalsfm.rotation_averaging <<< $RESULT) | sed -e s/^null$//
+  rotation_averaging=${rotation_averaging//[^0-9]/}
+  [ -n "$rotation_averaging" ] && O="$O -r $rotation_averaging"
+  rotation_averaging=$(jq -r .result.job.config.globalsfm.rotation_averaging <<< $RESULT) | sed -e s/^null$//
+  rotation_averaging=${rotation_averaging//[^0-9]/}
+  [ -n "$rotation_averaging" ] && O="$O -r $rotation_averaging"
   GLOBALSFM_OPTIONS=$O
 fi
 
@@ -380,6 +389,24 @@ if [ -z "$FSSRECON_OPTIONS" ] ; then
   refine_octree=${refine_octree//[^0-9]/}
   [ -n "$refine_octree" ] && O="$O --refine-octree $refine_octree"
   FSSRECON_OPTIONS=$O
+fi
+
+if [ -z "$MESHCLEAN_OPTIONS" ] ; then
+  O=""
+  threshold=$(jq -r .result.job.config.meshclean.threshold <<< $RESULT) | sed -e s/^null$//
+  threshold=${threshold//[^0-9]\./}
+  [ -n "$threshold" ] && O="$O --threshold $threshold"
+  percentile=$(jq -r .result.job.config.meshclean.percentile <<< $RESULT) | sed -e s/^null$//
+  percentile=${percentile//[^0-9]\./}
+  [ -n "$percentile" ] && O="$O --percentile $percentile"
+  component_size=$(jq -r .result.job.config.meshclean.component_size <<< $RESULT) | sed -e s/^null$//
+  component_size=${component_size//[^0-9]\./}
+  [ -n "$component_size" ] && O="$O --component-size $component_size"
+  no_clean=$(jq -r .result.job.config.meshclean.no_clean <<< $RESULT) | sed -e s/^null$//
+  no_clean=${no_clean//[^0-9]\./}
+  [ -n "$no_clean" ] && O="$O --no_clean"
+  MESCHLEAN_OPTIONS=$O
+
 fi
 
 assert_cameraModelInDatabase() {
@@ -658,11 +685,37 @@ fssrecon() {
 
     EXIT_CODE=$?
     if [ $EXIT_CODE -ne 0 ] ; then
-      [ -f $SEGMENT_DIR/MVE/surface_modelply ] && rm $SEGMENT_DIR/MVE/surface_model.ply
+      [ -f $SEGMENT_DIR/MVE/surface_model.ply ] && rm $SEGMENT_DIR/MVE/surface_model.ply
       errmsg "fssrecon exited with status $EXIT_CODE"
     fi
   fi
   export PLY=$SEGMENT_DIR/MVE/surface_model.ply
+}
+
+meshclean() {
+  if [ -f $SEGMENT_DIR/MVE/surface_clean_model.ply ]
+  then
+    progress "meshclean already done"
+  else
+    progress Running meshclean
+    MESHCLEAN_OPTIONS=${MESHCLEAN_OPTIONS:-\
+      --threshold=1 \
+      --component-size=1024 \
+    }
+    progress "options: $MESHCLEAN_OPTIONS"
+    echo $MESHCLEAN_OPTIONS > $SEGMENT_DIR/MVE/MESHCLEAN_OPTIONS
+    $(which meshclean) \
+      $MESHCLEAN_OPTIONS \
+      $SEGMENT_DIR/MVE/surface_model.ply \
+      $SEGMENT_DIR/MVE/surface_clean_model.ply
+
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -ne 0 ] ; then
+      [ -f $SEGMENT_DIR/MVE/surface_clean_model.ply ] && rm $SEGMENT_DIR/MVE/surface_clean_model.ply
+      errmsg "meshclean exited with status $EXIT_CODE"
+    fi
+  fi
+  export PLY=$SEGMENT_DIR/MVE/surface_clean_model.ply
 }
 
 assert_hasPoints() {
@@ -735,6 +788,7 @@ densify() {
       progress "Assert SMVS pointcloud has points" 
       assert_hasPoints MVE/smvs-B1.ply $REQUIRED_POINTS_AFTER_DENSIFICATION
       fssrecon
+      meshclean
       ;;
     pmvs)
       openmvg2pmvs
