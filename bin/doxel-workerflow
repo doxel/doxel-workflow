@@ -779,9 +779,10 @@ sfm() {
 
 densify() {
   local method
-  method=$(jq -r $RESULT .result.job.config.densification_method <<< $RESULT)
+  method=$(jq -r .result.job.config.densification_method <<< $RESULT)
   case "$method" in
     *)
+      progress "viewer needs undistorted images in PMVS/ directory"
       openmvg2pmvs # viewer needs undistorted images in PMVS/ directory
       openmvg2mve2
       smvsrecon
