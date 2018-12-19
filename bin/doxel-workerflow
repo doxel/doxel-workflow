@@ -441,10 +441,12 @@ assert_cameraModelInDatabase() {
 }
 
 sfm_init() {
-  if [ -f $SEGMENT_DIR/openMVG/sfm_data.json ]
+  if [ -z "$FORCE" -a -f $SEGMENT_DIR/openMVG/sfm_data.json ]
   then
     progress "Images list already exist"
   else
+    FORCE=--force
+    [ -n "$FORCE" -a -f $SEGMENT_DIR/openMVG/sfm_data.json ] && rm $SEGMENT_DIR/openMVG/sfm_data.json
     progress openMVG_main_SfMInit_ImageListing
     mkdir -p $SEGMENT_DIR/openMVG
     SFMINIT_IMAGELISTING_OPTIONS=${SFMINIT_IMAGELISTING_OPTIONS:-\
@@ -466,10 +468,11 @@ sfm_init() {
 }
 
 compute_features() {
-  if [ -n "$(find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -iname \*.feat -print -quit)" ]
+  if [ -z "$FORCE" -a -n "$(find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -iname \*.feat -print -quit)" ]
   then
     progress Features already exist
   else
+    FORCE=true
     progress openMVG_main_ComputeFeatures
     COMPUTEFEATURES_OPTIONS=${COMPUTEFEATURES_OPTIONS:-\
       -m SIFT \
@@ -477,6 +480,7 @@ compute_features() {
     progress "options: $COMPUTEFEATURES_OPTIONS"
     echo $COMPUTEFEATURES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEFEATURES_OPTIONS
     openMVG_main_ComputeFeatures \
+      --force \
       -o $SEGMENT_DIR/openMVG/matches/ \
       -i $SEGMENT_DIR/openMVG/sfm_data.json \
       -n $NUM_THREADS \
@@ -491,10 +495,11 @@ compute_features() {
 }
 
 compute_matches() {
-  if [ -n "$(find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -name matches.putative.\* -print -quit)" ]
+  if [ -z "$FORCE" -a -n "$(find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -name matches.putative.\* -print -quit)" ]
   then
     progress Matches already done
   else
+    FORCE=true
     progress openMVG_main_ComputeMatches
     COMPUTEMATCHES_OPTIONS=${COMPUTEMATCHES_OPTIONS:-\
       -g e \
@@ -503,6 +508,7 @@ compute_matches() {
     progress "options: $COMPUTEMATCHES_OPTIONS"
     echo $COMPUTEMATCHES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEMATCHES_OPTIONS
     openMVG_main_ComputeMatches \
+      --force \
       -i $SEGMENT_DIR/openMVG/sfm_data.json \
       -o $SEGMENT_DIR/openMVG/matches \
       $COMPUTEMATCHES_OPTIONS
@@ -516,10 +522,11 @@ compute_matches() {
 }
 
 global_sfm() {
-  if [ -f $SEGMENT_DIR/openMVG/SfMReconstruction_Report.html ]
+  if [ -z "$FORCE" -a -f $SEGMENT_DIR/openMVG/SfMReconstruction_Report.html ]
   then
     progress "GlobalSfM already done"
   else
+    FORCE=true
     progress openMVG_main_GlobalSfM
     GLOBALSFM_OPTIONS=${GLOBALSFM_OPTIONS:-\
     }
@@ -540,10 +547,12 @@ global_sfm() {
 }
 
 compute_structure_from_known_poses() {
-  if [ -f $SEGMENT_DIR/openMVG/robust.ply ]
+  if [ -z "$FORCE" -a -f $SEGMENT_DIR/openMVG/robust.ply ]
   then
     progress "Compute Structure From Known Poses already done"
   else
+    [ -n "$FORCE" -a -f $SEGMENT_DIR/openMVG/robust.ply ] && rm $SEGMENT_DIR/openMVG/robust.ply
+    FORCE=true
     progress openMVG_main_ComputeStructureFromKnownPoses
     COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS=${COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS:-\
     }
@@ -564,10 +573,12 @@ compute_structure_from_known_poses() {
 }
 
 openmvg2pmvs() {
-  if [ -n "$(find $SEGMENT_DIR/PMVS/ -maxdepth 1 -name pmvs_options.txt -print -quit)" ]
+  if [ -z "$FORCE" -a -n "$(find $SEGMENT_DIR/PMVS/ -maxdepth 1 -name pmvs_options.txt -print -quit)" ]
   then
     progress "PMVS directory already exist"
   else
+    [ -n "$FORCE" -a -d $SEGMENT_DIR/PMVS ] && rm -r $SEGMENT_DIR/PMVS
+    FORCE=true
     progress openMVG_main_openMVG2PMVS
     OPENMVG2PMVS_OPTIONS=${OPENMVG2PMVS_OPTIONS:-\
     }
@@ -587,10 +598,12 @@ openmvg2pmvs() {
 }
 
 cmvspmvs() {
-  if [ -n "$(find $SEGMENT_DIR/PMVS/models/ -type f -print -quit)" ]
+  if [ -z "$FORCE" -a -n "$(find $SEGMENT_DIR/PMVS/models/ -type f -print -quit)" ]
   then
     progress "PMVS models directory already exist"
   else
+    [ -n "$FORCE" -a -d $SEGMENT_DIR/PMVS/models ] && rm -r $SEGMENT_DIR/PMVS/models
+    FORCE=true
     progress "Running CMVS"
     progress "options: ${CMVS_MAXIMAGE:-80} ${CMVS_CPU:-$NUM_THREADS}"
     cmvs $(pwd)/PMVS/ ${CMVS_MAXIMAGE:-80} ${CMVS_CPU:-$NUM_THREADS} \
@@ -610,7 +623,7 @@ cmvspmvs() {
 
     EXIT_CODE=$?
     if [ $EXIT_CODE -ne 0 ] ; then
-     #  [ -d $SEGMENT_DIR/PMVS/models ] && rm -r $SEGMENT_DIR/PMVS/models
+      [ -d $SEGMENT_DIR/PMVS/models ] && rm -r $SEGMENT_DIR/PMVS/models
       errmsg "CMVS/PMVS exited with status $EXIT_CODE"
     fi
   fi
@@ -618,10 +631,12 @@ cmvspmvs() {
 }
 
 openmvg2mve2() {
-  if [ -n "$(find $SEGMENT_DIR/MVE/ -maxdepth 1 -name synth_0.out -print -quit)" ]
+  if [ -z "$FORCE" -a -n "$(find $SEGMENT_DIR/MVE/ -maxdepth 1 -name synth_0.out -print -quit)" ]
   then
     progress "MVE directory already exist"
   else
+    [ -n "$FORCE" -a -d "$SEGMENT_DIR/MVE" ] && rm -r $SEGMENT_DIR/MVE
+    FORCE=true
     progress openMVG_main_openMVG2MVE2
     OPENMVG2MVE2_OPTIONS=${OPENMVG2MVE2_OPTIONS:-\
     }
@@ -641,15 +656,18 @@ openmvg2mve2() {
 }
 
 smvsrecon() {
-  if [ -f $SEGMENT_DIR/MVE/smvs-B1.ply ]
+  if [ -z "$FORCE" -a -f $SEGMENT_DIR/MVE/smvs-B1.ply ]
   then
     progress "SMVS already done"
   else
+    [ -n "$FORCE" -a -f $SEGMENT_DIR/MVE/smvs-B1.ply ] && rm $SEGMENT_DIR/MVE/smvs-B1.ply
+    FORCE=true
     progress Running smvsrecon
     SMVSRECON_OPTIONS=${SMVSRECON_OPTIONS:-\
       --scale=1 \
       --output-scale=2 \
       --alpha=1.0 \
+      --clean \
     }
     progress "options: $SMVSRECON_OPTIONS"
     echo $SMVSRECON_OPTIONS > $SEGMENT_DIR/MVE/SMVSRECON_OPTIONS
@@ -667,10 +685,12 @@ smvsrecon() {
 }
 
 fssrecon() {
-  if [ -f $SEGMENT_DIR/MVE/surface_model.ply ]
+  if [ -z "$FORCE" -a -f $SEGMENT_DIR/MVE/surface_model.ply ]
   then
     progress "FSS already done"
   else
+    [ -n "$FORCE" -a -f $SEGMENT_DIR/MVE/surface_model.ply ] && rm $SEGMENT_DIR/MVE/surface_model.ply
+    FORCE=true
     progress Running fssrecon
     FSSRECON_OPTIONS=${FSSRECON_OPTIONS:-\
       --scale-factor=1 \
@@ -693,10 +713,12 @@ fssrecon() {
 }
 
 meshclean() {
-  if [ -f $SEGMENT_DIR/MVE/surface_clean_model.ply ]
+  if [ -z "$FORCE" -a -f $SEGMENT_DIR/MVE/surface_clean_model.ply ]
   then
     progress "meshclean already done"
   else
+    [ -f $SEGMENT_DIR/MVE/surface_clean_model.ply ] && rm $SEGMENT_DIR/MVE/surface_clean_model.ply
+    FORCE=true
     progress Running meshclean
     MESHCLEAN_OPTIONS=${MESHCLEAN_OPTIONS:-\
       --threshold=1 \
@@ -736,16 +758,22 @@ assert_hasPoints() {
 }
 
 viewer() {
-  if [ -d $SEGMENT_DIR/potree ]
+  if [ -z "$FORCE" -a -d $SEGMENT_DIR/potree ]
   then
     progress "Potree directory already exist"
   else
+    [ -n "$FORCE" ] && {
+      [ -d $SEGMENT_DIR/potree ] && rm -r $SEGMENT_DIR/potree
+      [ -d $SEGMENT_DIR/viewer ] && rm -r $SEGMENT_DIR/viewer
+    }
+    FORCE=true
     progress "Running viewer.sh"
     viewer.sh
 
     EXIT_CODE=$?
     if [ $EXIT_CODE -ne 0 ] ; then
        [ -d $SEGMENT_DIR/potree ] && rm -r $SEGMENT_DIR/potree
+       [ -d $SEGMENT_DIR/viewer ] && rm -r $SEGMENT_DIR/viewer
       errmsg "viewer.sh exited with status $EXIT_CODE" >&2
     fi
 
