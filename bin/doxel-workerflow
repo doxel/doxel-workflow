@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see http://www.gnu.org/licenses/.
 
+DATE_FORMAT="%b %d %Y %H:%M:%S"
 DOXELCONFIG=~/.doxelconfig
 
 usage() {
@@ -170,7 +171,7 @@ REQUIRED_POINTS_AFTER_OPENMVG=${REQUIRED_POINTS_AFTER_OPENMVG:-10}
 REQUIRED_POINTS_AFTER_DENSIFICATION=${REQUIRED_POINTS_AFTER_DENSIFICATION:-5000}
 
 assert_dependencies() {
-  for cmd in node jq parallel mogrify exiftool ; do
+  for cmd in node jq parallel mogrify exiftool ts ; do
     if ! which $cmd > /dev/null ; then
       echo Command $cmd is required !
       exit 1
@@ -189,7 +190,9 @@ errmsg() {
 }
 
 progress() {
-  echo "=== $*" >&2
+  printf %s\\r "=== $*" >&2
+  [ "$*" != "$PREVPROGRESS" ] && printf \\n
+  PREVPROGRESS="$*"
   log '{"msg": "'$*'", "t": '$(date +%s000)'}'
 }
 
@@ -200,10 +203,10 @@ log() {
       -a $AUTHORIZATION \
       -j $JOB_ID \
       -d $(encodeURIComponent "${*}") \
-      $URL
+      $URL > /dev/null
   fi
 
-  [ -n "$SEGMENT_DIR" ] && echo "$*" >> $SEGMENT_DIR/LOG
+#  [ -n "$SEGMENT_DIR" ] && echo "$*" >> $SEGMENT_DIR/LOG
 }
 
 assert_dependencies
@@ -219,7 +222,7 @@ if [ -z "$AUTHORIZATION" ] ; then
         $NOCHECKCERTIFICATE \
         $API \
     )
-    [ -z "$ACCESS_TOKEN" ] && errmsg login failed
+    [ -z "$ACCESS_TOKEN" ] && errmsg login failed 2>&1 | ts "$DATE_FORMAT"
 
   fi
   AUTHORIZATION=$(jq -r .id <<< $ACCESS_TOKEN)
@@ -239,19 +242,19 @@ fi
 
 EXITCODE=$?
 
-[ $EXITCODE -ne 0 ] && errmsg doxel-getjob returned error $EXITCODE
+[ $EXITCODE -ne 0 ] && errmsg doxel-getjob returned error $EXITCODE 2>&1 | ts "$DATE_FORMAT"
 
-[ -z "$RESULT" ] && errmsg no reply
+[ -z "$RESULT" ] && errmsg no reply 2>&1 | ts "$DATE_FORMAT"
 if [ "$RESULT" == "{}" ] ; then
-  progress No job available
+  progress No job available 2>&1 | ts "$DATE_FORMAT"
   exit
 fi
 
 JOB_ID=$(jq -r .result.job.id <<< $RESULT)
-[ "$JOB_ID" == "null" ] && errmsg no job id
+[ "$JOB_ID" == "null" ] && errmsg no job id 2>&1 | ts "$DATE_FORMAT"
 
 SEGMENT_ID=$(jq -r .result.job.segmentId <<< $RESULT)
-[ "$SEGMENT_ID" == "null" ] && errmsg no segment id
+[ "$SEGMENT_ID" == "null" ] && errmsg no segment id 2>&1 | ts "$DATE_FORMAT"
 echo "=== Segment: $SEGMENT_ID"
 
 SEGMENT_DIR=$( \
@@ -259,8 +262,9 @@ SEGMENT_DIR=$( \
   | sed -r -e 's/.*\/upload/\/mnt\/upload/' \
 )
 
-[ -z "$SEGMENT_DIR" ] && errmsg no segment dir
+[ -z "$SEGMENT_DIR" ] && errmsg no segment dir 2>&1 | ts "$DATE_FORMAT"
 
+{
 
 if [ -z "$SFMINIT_IMAGELISTING_OPTIONS" ] ; then
   O=""
@@ -445,7 +449,7 @@ sfm_init() {
   then
     progress "Images list already exist"
   else
-    FORCE=--force
+    FORCE=true
     [ -n "$FORCE" -a -f $SEGMENT_DIR/openMVG/sfm_data.json ] && rm $SEGMENT_DIR/openMVG/sfm_data.json
     progress openMVG_main_SfMInit_ImageListing
     mkdir -p $SEGMENT_DIR/openMVG
@@ -480,7 +484,7 @@ compute_features() {
     progress "options: $COMPUTEFEATURES_OPTIONS"
     echo $COMPUTEFEATURES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEFEATURES_OPTIONS
     openMVG_main_ComputeFeatures \
-      --force \
+      --force 1 \
       -o $SEGMENT_DIR/openMVG/matches/ \
       -i $SEGMENT_DIR/openMVG/sfm_data.json \
       -n $NUM_THREADS \
@@ -508,7 +512,7 @@ compute_matches() {
     progress "options: $COMPUTEMATCHES_OPTIONS"
     echo $COMPUTEMATCHES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEMATCHES_OPTIONS
     openMVG_main_ComputeMatches \
-      --force \
+      --force 1 \
       -i $SEGMENT_DIR/openMVG/sfm_data.json \
       -o $SEGMENT_DIR/openMVG/matches \
       $COMPUTEMATCHES_OPTIONS
@@ -667,7 +671,6 @@ smvsrecon() {
       --scale=1 \
       --output-scale=2 \
       --alpha=1.0 \
-      --clean \
     }
     progress "options: $SMVSRECON_OPTIONS"
     echo $SMVSRECON_OPTIONS > $SEGMENT_DIR/MVE/SMVSRECON_OPTIONS
@@ -763,8 +766,16 @@ viewer() {
     progress "Potree directory already exist"
   else
     [ -n "$FORCE" ] && {
-      [ -d $SEGMENT_DIR/potree ] && rm -r $SEGMENT_DIR/potree
-      [ -d $SEGMENT_DIR/viewer ] && rm -r $SEGMENT_DIR/viewer
+      [ -d $SEGMENT_DIR/potree ] && {
+        i=0
+        while [ -d $SEGMENT_DIR/potree.$i ] ; do ((++i)) ; done
+        progress renaming potree/ to potree.$i
+        mv $SEGMENT_DIR/potree $SEGMENT_DIR/potree.$i 
+        [ -d $SEGMENT_DIR/viewer ] && {
+          progress renaming viewer/ to viewer.$i
+          mv $SEGMENT_DIR/viewer $SEGMENT_DIR/viewer.$i
+        }
+      }
     }
     FORCE=true
     progress "Running viewer.sh"
@@ -830,7 +841,7 @@ densify() {
 }
 
 process_segment() {
-  set -x
+  [ -n "$DEBUG" ] && set -x
   SEGMENT_DIR=$1
   cd $SEGMENT_DIR || errmsg "no such directory: $SEGMENT_DIR"
   progress "$SEGMENT_DIR"
@@ -849,3 +860,5 @@ process_segment() {
 }
 
 process_segment $SEGMENT_DIR
+
+} 2>&1 | ts "$DATE_FORMAT" | tee -a $SEGMENT_DIR/LOG
