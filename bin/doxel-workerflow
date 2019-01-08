@@ -335,15 +335,6 @@ if [ -z "$GLOBALSFM_OPTIONS" ] ; then
   [ -n "$refine_intrinsics" ] && O="$O --refineIntrinsics $refine_intrinsics"
   prior_usage=$(jq -r .result.job.config.globalsfm.prior_usage <<< $RESULT) | sed -e s/^null$//
   [ -n "$prior_usage" ] && O="$O --prior_usage $prior_usage"
-  rotation_averaging=$(jq -r .result.job.config.globalsfm.rotation_averaging <<< $RESULT) | sed -e s/^null$//
-  rotation_averaging=${rotation_averaging//[^0-9]/}
-  [ -n "$rotation_averaging" ] && O="$O -r $rotation_averaging"
-  rotation_averaging=$(jq -r .result.job.config.globalsfm.rotation_averaging <<< $RESULT) | sed -e s/^null$//
-  rotation_averaging=${rotation_averaging//[^0-9]/}
-  [ -n "$rotation_averaging" ] && O="$O -r $rotation_averaging"
-  rotation_averaging=$(jq -r .result.job.config.globalsfm.rotation_averaging <<< $RESULT) | sed -e s/^null$//
-  rotation_averaging=${rotation_averaging//[^0-9]/}
-  [ -n "$rotation_averaging" ] && O="$O -r $rotation_averaging"
   GLOBALSFM_OPTIONS=$O
 fi
 
