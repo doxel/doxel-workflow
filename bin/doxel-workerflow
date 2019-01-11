@@ -47,7 +47,7 @@ DESCRIPTION
        -h, --help
 
        -n, --no-check-certificate
-   
+
        -c, --config
              config to use instead of ~/.doxelconfig
 
@@ -155,7 +155,7 @@ else
   fi
 fi
 
-if [ $# -eq 1 ] ; then 
+if [ $# -eq 1 ] ; then
   API=$1
 fi
 
@@ -266,232 +266,170 @@ SEGMENT_DIR=$( \
 JOB_DIR=$SEGMENT_DIR/job/$JOB_ID
 mkdir -p $JOB_DIR || errmsg cannot create dir $JOB_DIR 2>&1 | ts "$DATE_FORMAT"
 
+add() {
+  local type=$1
+  local option=$2
+  local path=$3
+  local result=$(jq -r $path <<< $RESULT | sed -e s/^null//)
+  [ "${option: -1}" = '=' ] || option="$option "
+  case $type in
+    float) result=${result//[^0-9\.]/} ;;
+    floats) result=${result//[^0-9\.;]/} ;;
+    int) result=${result//[^0-9]/} ;;
+    alpha) result=\"${result//[^a-zA-Z_0-9|]/}\" ;;
+    switch)
+      result=${result//[^a-z0-9]}
+      case "$result" in
+        false|0|'') return ;;
+        *) O="$O $option" ; return ;;
+      esac
+      ;;
+    *) result=${result//[^$type]/} ;;
+  esac
+  [ -n "$result" ] && O="$O $option$result"
+}
+
 {
 
 if [ -z "$SFMINIT_IMAGELISTING_OPTIONS" ] ; then
   O=""
-  focal=$(jq -r .result.job.config.sfm_imagelisting.focal <<< $RESULT) | sed -e s/^null$//
-  focal=${focal//[^0-9\.]/}
-  [ -n "$focal" ] && O="$O --focal $focal"
-  intrinsics=$(jq -r .result.job.config.sfm_imagelisting.intrinsics <<< $RESULT) | sed -e s/^null$//
-  intrinsics=${intrinsics//[^0-9\.;]/}
-  [ -n "$intrinsics" ] && O="$O --intrinsics '$intrinsics'"
-  camera_model=$(jq -r .result.job.config.sfm_imagelisting.camera_model <<< $RESULT) | sed -e s/^null$//
-  camera_model=${camera_model//[^0-9]/}
-  [ -n "$camera_model" ] && O="$O --camera_model $camera_model"
-  group_camera_model=$(jq -r .result.job.config.sfm_imagelisting.group_camera_model <<< $RESULT) | sed -e s/^null$//
-  group_camera_model=${group_camera_model//[^0-9]/}
-  [ -n "$group_camera_model" ] && O="$O --group_camera_model $group_camera_model"
-  use_pose_prior=$(jq -r .result.job.config.sfm_imagelising.use_pose_prior <<< $RESULT) | sed -e s/^null$//
-  use_pose_prior=${use_pose_prior//[^0-9\.\;]/}
-  [ -n "$use_pose_prior" ] && O="$O --use_pose_prior $use_pose_prior"
+  add float --focal .result.job.config.sfm_imagelisting.focal
+  add floats --intrinsics .result.job.config.sfm_imagelisting.intrinsics
+  add int --camera_model .result.job.config.sfm_imagelisting.camera_model
+  add int --group_camera_model .result.job.config.sfm_imagelisting.group_camera_model
+  add int --use_pose_prior .result.job.config.sfm_imagelisting.use_pose_prior
+  add floats --prior_weights .result.job.config.sfm_imagelisting.prior_weights
   SFMINIT_IMAGELISTING_OPTIONS=$O
 fi
 
 if [ -z "$COMPUTEFEATURES_OPTIONS" ] ; then
   O=""
-  describer_method=$(jq -r .result.job.config.computefeatures.describer_method <<< $RESULT) | sed -e s/^null$//
-  describer_method=${describer_method//[^A-Z_]/}
-  [ -n "$describer_method" ] && O="$O --describer_method $describer_method"
-  upright=$(jq -r .result.job.config.computefeatures.upright <<< $RESULT) | sed -e s/^null$//
-  upright=${upright//[^0-1]/}
-  [ -n "$upright" ] && O="$O --upright $upright"
-  describer_preset=$(jq -r .result.job.config.computefeatures.describer_preset <<< $RESULT) | sed -e s/^null$//
-  describer_preset=${describer_preset//[^A-Z]/}
-  [ -n "$describer_preset" ] && O="$O --describerPreset $describer_preset"
+  add alpha --describer_method .result.job.config.computefeatures.describer_method
+  add int --upright .result.job.config.computefeatures.upright
+  add alpha --describerPreset .result.job.config.computefeatures.describer_preset
+  add int --numThreads .result.job.config.computefeatures.numThreads
   COMPUTEFEATURES_OPTIONS=$O
 fi
 
 if [ -z "$COMPUTEMATCHES_OPTIONS" ] ; then
   O=""
-  ratio=$(jq -r .result.job.config.computematches.ratio <<< $RESULT) | sed -e s/^null$//
-  ratio=${ratio//[^0-9\.]/}
-  [ -n "$ratio" ] && O="$O --ratio $ratio"
-  geometric_model=$(jq -r .result.job.config.computematches.geometric_model <<< $RESULT) | sed -e s/^null$//
-  geometric_model=${geometric_model//[^fehao]/}
-  [ -n "$geometric_model" ] && O="$O --geometric_model $geometric_model"
-  video_mode_matching=$(jq -r .result.job.config.computematches.video_mode_matching <<< $RESULT) | sed -e s/^null$//
-  video_mode_matching=${video_mode_matching//[^0-9]/}
-  [ -n "$video_mode_matching" ] && O="$O --video_mode_matching $video_mode_matching"
-  nearest_matching_method=$(jq -r .result.job.config.computematches.nearest_matching_method <<< $RESULT) | sed -e s/^null$//
-  nearest_matching_method=${nearest_matching_method//[^0-9A-Z]/}
-  [ -n "$nearest_matching_method" ] && O="$O --nearest_matching_method $nearest_matching_method"
-  guided_matching=$(jq -r .result.job.config.computematches.guided_matching <<< $RESULT) | sed -e s/^null$//
-  [ -n "$guided_matching" ] && O="$O --guided_matching"
-  cache_size=$(jq -r .result.job.config.computematches.cache_size <<< $RESULT) | sed -e s/^null$//
-  cache_size=${cache_size//[^0-9]/}
-  [ -n "$cache_size" ] && O="$O --cache_size $cache_size"
+  add float --ratio .result.job.config.computematches.ratio
+  add fehao --geometric_model .result.job.config.computematches.geometric_model
+  add int --video_mode_matching .result.job.config.computematches.video_mode_matching
+  add alpha --nearest_matching_method .result.job.config.computematches.nearest_matching_method
+  add switch --guided_matching .result.job.config.computematches.guided_matching
+  add int --cache_size .result.job.config.computematches.cache_size
   COMPUTEMATCHES_OPTIONS=$O
 fi
 
 if [ -z "$GLOBALSFM_OPTIONS" ] ; then
   O=""
-  rotation_averaging=$(jq -r .result.job.config.globalsfm.rotation_averaging <<< $RESULT) | sed -e s/^null$//
-  rotation_averaging=${rotation_averaging//[^0-9]/}
-  [ -n "$rotation_averaging" ] && O="$O --rotationAveraging $rotation_averaging"
-  translation_averaging=$(jq -r .result.job.config.globalsfm.translation_averaging <<< $RESULT) | sed -e s/^null$//
-  translation_averaging=${translation_averaging//[^0-9]/}
-  [ -n "$translation_averaging" ] && O="$O --translationAveraging $translation_averaging"
-  refine_intrinsics=$(jq -r .result.job.config.globalsfm.refine_intrinsics <<< $RESULT) | sed -e s/^null$//
-  refine_intrinsics=${refine_intrinsics//[^A-Z_]/}
-  [ -n "$refine_intrinsics" ] && O="$O --refineIntrinsics $refine_intrinsics"
-  prior_usage=$(jq -r .result.job.config.globalsfm.prior_usage <<< $RESULT) | sed -e s/^null$//
-  [ -n "$prior_usage" ] && O="$O --prior_usage $prior_usage"
+  add int --rotationAveraging .result.job.config.globalsfm.rotation_averaging
+  add int --translationAveraging= .result.job.config.globalsfm.translation_averaging
+  add alpha --refine_intrinsics .result.job.config.globalsfm.refine_intrinsics
+  add switch prior_usage .result.job.config.globalsfm.prior_usage
   GLOBALSFM_OPTIONS=$O
 fi
 
 if [ -z "$COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS" ] ; then
   O=""
-  bundle_adjustment=$(jq -r .result.job.config.compute_structure_from_known_poses.bundle_adjustment <<< $RESULT) | sed -e s/^null$//
-  [ -n "$bundle_adjustment" ] && O="$O --bundle_adjustment"
-  residual_threshold=$(jq -r .result.job.config.compute_structure_from_known_poses.residual_threshold <<< $RESULT) | sed -e s/^null$//
-  residual_threshold=${residual_threshold//[^0-9]\./}
-  [ -n "$residual_threshold" ] && O="$O --residual_threshold $residual_threshold"
-  cache_size=$(jq -r .result.job.config.compute_structure_from_known_poses.cache_size <<< $RESULT) | sed -e s/^null$//
-  cache_size=${cache_size//[^0-9]/}
-  [ -n "$cache_size" ] && O="$O --cache_size $cache_size"
+  add switch bundle_adjustment .result.job.config.compute_structure_from_known_poses.bundle_adjustment
+  add float --residual_threshold .result.job.config.compute_structure_from_known_poses.residual_threshold
+  add int --cache_size .result.job.config.compute_structure_from_known_poses.cache_size
   COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS=$O
 fi
 
 if [ -z "$OPENMVG2PMVS_OPTIONS" ] ; then
   O=""
-  resolution=$(jq -r .result.job.config.openmvg2pmvs.resolution <<< $RESULT) | sed -e s/^null$//
-  resolution=${resolution//[^0-9]\./}
-  [ -n "$resolution" ] && O="$O --resolution $resolution"
-  use_vis_data=$(jq -r .result.job.config.openmvg2pmvs.use_vis_data <<< $RESULT) | sed -e s/^null$//
-  [ -n "$use_vis_data" ] && O="$O --useVisData"
+  add float --resolution .result.job.config.openmvg2pmvs.resolution
+  add switch --useVisData .result.job.config.openmvg2pmvs.use_vis_data
+  add int --CPU .result.job.config.openmvg2pmvs.CPU
   OPENMVG2PMVS_OPTIONS=$O
 fi
 
 if [ -z "$SMVSRECON_OPTIONS" ] ; then
   O=""
-  alpha=$(jq -r .result.job.config.smvsrecon.alpha <<< $RESULT) | sed -e s/^null$//
-  alpha=${alpha//[^0-9]\./}
-  [ -n "$alpha" ] && O="$O --alpha $alpha"
-  scale=$(jq -r .result.job.config.smvsrecon.scale <<< $RESULT) | sed -e s/^null$//
-  scale=${scale//[^0-9]\./}
-  [ -n "$scale" ] && O="$O --scale $scale"
-  output_scale=$(jq -r .result.job.config.smvsrecon.output_scale <<< $RESULT) | sed -e s/^null$//
-  output_scale=${output_scale//[^0-9]\./}
-  [ -n "$output_scale" ] && O="$O --output-scale $output_scale"
-  threads=$(jq -r .result.job.config.smvsrecon.threads <<< $RESULT) | sed -e s/^null$//
-  threads=${threads//[^0-9]\./}
-  [ -n "$threads" ] && O="$O --threads $threads"
-  shading=$(jq -r .result.job.config.smvsrecon.shading <<< $RESULT) | sed -e s/^null$//
-  shading=${shading//[^0-9]\./}
-  [ -n "$shading" ] && O="$O --shading"
-  no_cut=$(jq -r .result.job.config.smvsrecon.no_cut <<< $RESULT) | sed -e s/^null$//
-  no_cut=${no_cut//[^0-9]\./}
-  [ -n "$no_cut" ] && O="$O --no-cut"
-  neighbors=$(jq -r .result.job.config.smvsrecon.neighbors <<< $RESULT) | sed -e s/^null$//
-  neighbors=${neighbors//[^0-9]\./}
-  [ -n "$neighbors" ] && O="$O --neighbors $neighbors"
-  min_neighbors=$(jq -r .result.job.config.smvsrecon.min_neighbors <<< $RESULT) | sed -e s/^null$//
-  min_neighbors=${min_neighbors//[^0-9]\./}
-  [ -n "$min_neighbors" ] && O="$O --min-neighbors $min_neighbors"
-  no_sgm=$(jq -r .result.job.config.smvsrecon.no_sgm <<< $RESULT) | sed -e s/^null$//
-  no_sgm=${no_sgm//[^0-9]\./}
-  [ -n "$no_sgm" ] && O="$O --no-sgm"
-  force_sgm=$(jq -r .result.job.config.smvsrecon.force_sgm <<< $RESULT) | sed -e s/^null$//
-  force_sgm=${force_sgm//[^0-9]\./}
-  [ -n "$force_sgm" ] && O="$O --force-sgm"
-  sgm_scale=$(jq -r .result.job.config.smvsrecon.sgm_scale <<< $RESULT) | sed -e s/^null$//
-  sgm_scale=${sgm_scale//[^0-9]\./}
-  [ -n "$sgm_scale" ] && O="$O --sgm-scale $sgm_scale"
-  sgm_range=$(jq -r .result.job.config.smvsrecon.sgm_range <<< $RESULT) | sed -e s/^null$//
-  sgm_range=${sgm_range//[^0-9]\./}
-  [ -n "$sgm_range" ] && O="$O --sgm-range $sgm_range"
-  full_opt=$(jq -r .result.job.config.smvsrecon.full_opt <<< $RESULT) | sed -e s/^null$//
-  full_opt=${full_opt//[^0-9]\./}
-  [ -n "$full_opt" ] && O="$O --full-opt"
-  clean=$(jq -r .result.job.config.smvsrecon.clean <<< $RESULT) | sed -e s/^null$//
-  clean=${clean//[^0-9]\./}
-  [ -n "$clean" ] && O="$O --clean"
+  add float --alpha .result.job.config.smvsrecon.alpha
+  add float --scale .result.job.config.smvsrecon.scale
+  add float --output_scale .result.job.config.smvsrecon.output_scale
+  add int --threads .result.job.config.smvsrecon.threads
+  add switch --shading .result.job.config.smvsrecon.shading
+  add switch --no_cut .result.job.config.smvsrecon.no_cut
+  add int --neighbors .result.job.config.smvsrecon.neighbors
+  add int --min_neighbors .result.job.config.smvsrecon.min_neighbors
+  add switch --no_sgm .result.job.config.smvsrecon.no_sgm
+  add switch --force_sgm .result.job.config.smvsrecon.force_sgm
+  add float --sgm_scale .result.job.config.smvsrecon.sgm_scale
+  add float --sgm_range .result.job.config.smvsrecon.sgm_range
+  add switch --full_opt .result.job.config.smvsrecon.full_opt
+  add switch --clean .result.job.config.smvsrecon.clean
   SMVSRECON_OPTIONS=$O
 fi
 
 if [ -z "$FSSRECON_OPTIONS" ] ; then
   O=""
-  scale_factor=$(jq -r .result.job.config.fssrecon.scale_factor <<< $RESULT) | sed -e s/^null$//
-  scale_factor=${scale_factor//[^0-9]\./}
-  [ -n "$scale_factor" ] && O="$O --scale-factor $scale_factor"
-  refine_octree=$(jq -r .result.job.config.fssrecon.refine_octree <<< $RESULT) | sed -e s/^null$//
-  refine_octree=${refine_octree//[^0-9]/}
-  [ -n "$refine_octree" ] && O="$O --refine-octree $refine_octree"
-  min_scale=$(jq -r .result.job.config.fssrecon.min_scale <<< $RESULT) | sed -e s/^null$//
-  min_scale=${min_scale//[^0-9]/}
-  [ -n "$min_scale" ] && O="$O --min-scale $min_scale"
-  max_scale=$(jq -r .result.job.config.fssrecon.max_scale <<< $RESULT) | sed -e s/^null$//
-  max_scale=${max_scale//[^0-9]/}
-  [ -n "$max_scale" ] && O="$O --max-scale $max_scale"
-  interpolation=$(jq -r .result.job.config.fssrecon.interpolation <<< $RESULT) | sed -e s/^null$//
-  interpolation=${interpolation//[^a-z]/}
-  [ -n "$interpolation" ] && O="$O --interpolation $interpolation"
+  add float --scale-factor .result.job.config.fssrecon.scale_factor
+  add int --refine-octree .result.job.config.fssrecon.refine_octree
+  add float --min-scale .result.job.config.fssrecon.min_scale
+  add float --max_scale .result.job.config.fssrecon.max_scale
+  add alpha --interpolation .result.job.config.fssrecon.interpolation
   FSSRECON_OPTIONS=$O
 fi
 
 if [ -z "$MESHCLEAN_OPTIONS" ] ; then
   O=""
-  threshold=$(jq -r .result.job.config.meshclean.threshold <<< $RESULT) | sed -e s/^null$//
-  threshold=${threshold//[^0-9]\./}
-  [ -n "$threshold" ] && O="$O --threshold $threshold"
-  percentile=$(jq -r .result.job.config.meshclean.percentile <<< $RESULT) | sed -e s/^null$//
-  percentile=${percentile//[^0-9]\./}
-  [ -n "$percentile" ] && O="$O --percentile $percentile"
-  component_size=$(jq -r .result.job.config.meshclean.component_size <<< $RESULT) | sed -e s/^null$//
-  component_size=${component_size//[^0-9]\./}
-  [ -n "$component_size" ] && O="$O --component-size $component_size"
-  no_clean=$(jq -r .result.job.config.meshclean.no_clean <<< $RESULT) | sed -e s/^null$//
-  no_clean=${no_clean//[^0-9]\./}
-  [ -n "$no_clean" ] && O="$O --no_clean"
+  add float --threshold .result.job.config.meshclean.threshold
+  add float --percentile .result.job.config.meshclean.percentile
+  add float --component_size .result.job.config.meshclean.component_size
+  add switch --no_clean .result.job.config.meshclean.no_clean
   MESCHLEAN_OPTIONS=$O
 
 fi
 
 if [ -z "$CMVS_MAXIMAGE" ] ; then
-  CMVS_MAXIMAGE=$(jq -r .result.job.config.cmvs.max_image <<< $RESULT) | sed -e s/^null$//
+  CMVS_MAXIMAGE=$(jq -r .result.job.config.cmvs.max_image <<< $RESULT | sed -e s/^null$//)
   CMVS_MAXIMAGE=${CMVS_MAXIMAGE//[^0-9]\./}
 fi
 
 
 if [ -z "$CMVS_CPU" ] ; then
-  CMVS_CPU=$(jq -r .result.job.config.cmvs.cpu <<< $RESULT) | sed -e s/^null$//
+  CMVS_CPU=$(jq -r .result.job.config.cmvs.cpu <<< $RESULT | sed -e s/^null$//)
   CMVS_CPU=${CMVS_CPU//[^0-9]\./}
 fi
 
 
 if [ -z "$PMVS_LEVEL" ] ; then
-  PMVS_LEVEL=$(jq -r .result.job.config.pmvs.level << $RESULT) | sed -e s/^null$//
+  PMVS_LEVEL=$(jq -r .result.job.config.pmvs.level <<< $RESULT | sed -e s/^null$//)
   PMVS_LEVEL=${PMVS_LEVEL//[^0-9]\./}
 fi
 
 
 if [ -z "$PMVS_CSIZE" ] ; then
-  PMVS_CSIZE=$(jq -r .result.job.config.pmvs.csize <<< $RESULT) | sed -e s/^null$//
+  PMVS_CSIZE=$(jq -r .result.job.config.pmvs.csize <<< $RESULT | sed -e s/^null$//)
   PMVS_CSIZE=${PMVS_CSIZE//[^0-9]\./}
 fi
 
 
 if [ -z "$PMVS_THRESHOLD" ] ; then
-  PMVS_THRESHOLD=$(jq -r .result.job.config.pmvs.threshold <<< $RESULT) | sed -e s/^null$//
+  PMVS_THRESHOLD=$(jq -r .result.job.config.pmvs.threshold <<< $RESULT | sed -e s/^null$//)
   PMVS_THRESHOLD=${PMVS_THRESHOLD//[^0-9]\./}
 fi
 
 
 if [ -z "$PMVS_WSIZE" ] ; then
-  PMVS_WSIZE=$(jq -r .result.job.config.pmvs.csize <<< $RESULT) | sed -e s/^null$//
+  PMVS_WSIZE=$(jq -r .result.job.config.pmvs.csize <<< $RESULT | sed -e s/^null$//)
   PMVS_WSIZE=${PMVS_WSIZE//[^0-9]\./}
 fi
 
 
 if [ -z "$PMVS_MINIMAGENUM" ] ; then
-  PMVS_MINIMAGENUM=$(jq -r .result.job.config.pmvs.min_image_num <<< $RESULT) | sed -e s/^null$//
+  PMVS_MINIMAGENUM=$(jq -r .result.job.config.pmvs.min_image_num <<< $RESULT | sed -e s/^null$//)
   PMVS_MINIMAGENUM=${PMVS_MINIMAGENUM//[^0-9]\./}
 fi
 
 
 if [ -z "$PMVS_CPU" ] ; then
-  PMVS_CPU=$(jq -r .result.job.config.pmvs.cpu <<< $RESULT) | sed -e s/^null$//
+  PMVS_CPU=$(jq -r .result.job.config.pmvs.cpu <<< $RESULT | sed -e s/^null$//)
   PMVS_CPU=${PMVS_CPU//[^0-9]\./}
 fi
 
@@ -500,13 +438,13 @@ assert_cameraModelInDatabase() {
   JPEG=$(find original_images -maxdepth 1 -name \*.jpeg -print -quit)
   MODEL=$(exiftool -j -model $JPEG | jq .[0].Model -r)
   if [ -n "$MODEL" ] ; then
-    if grep -q -e "^$MODEL;" $SENSOR_WIDTH_DB ; then 
+    if grep -q -e "^$MODEL;" $SENSOR_WIDTH_DB ; then
       progress "Found $MODEL in $SENSOR_WIDTH_DB"
       [ -z "$focal" ] && SENSOR_WIDTH_OPTION="-d $SENSOR_WIDTH_DB"
     else
       if [ "$MODEL" != "null" ] ; then
         progress "$MODEL not found in $SENSOR_WIDTH_DB"
-        if [ -z "$focal" ] ; then 
+        if [ -z "$focal" ] ; then
           WIDTH=$(identify -f '%w' $JPEG)
           ESTIMATED_FOCAL=$(echo $WIDTH * 1.2 | bc -l)
           SENSOR_WIDTH_OPTION="-f $ESTIMATED_FOCAL"
@@ -930,7 +868,7 @@ viewer() {
         i=0
         while [ -d $SEGMENT_DIR/potree.$i ] ; do ((++i)) ; done
         progress renaming potree/ to potree.$i
-        mv $SEGMENT_DIR/potree $SEGMENT_DIR/potree.$i 
+        mv $SEGMENT_DIR/potree $SEGMENT_DIR/potree.$i
         [ -d $SEGMENT_DIR/viewer ] && {
           progress renaming viewer/ to viewer.$i
           mv $SEGMENT_DIR/viewer $SEGMENT_DIR/viewer.$i
@@ -985,7 +923,7 @@ densify() {
       openmvg2pmvs # viewer needs undistorted images in PMVS/ directory
       openmvg2mve2
       smvsrecon
-      progress "Assert SMVS pointcloud has points" 
+      progress "Assert SMVS pointcloud has points"
       assert_hasPoints MVE/smvs-B1.ply $REQUIRED_POINTS_AFTER_DENSIFICATION
       fssrecon
       meshclean
@@ -993,11 +931,11 @@ densify() {
     pmvs)
       openmvg2pmvs
       cmvspmvs
-      progress "Assert PMVS pointcloud has points" 
+      progress "Assert PMVS pointcloud has points"
       assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_DENSIFICATION
       ;;
   esac
-     
+
 }
 
 process_segment() {
@@ -1011,7 +949,7 @@ process_segment() {
   compute_features
   sfm
   compute_structure_from_known_poses
-  progress "Assert openMVG pointcloud has points" 
+  progress "Assert openMVG pointcloud has points"
   assert_hasPoints openMVG/robust.ply $REQUIRED_POINTS_AFTER_OPENMVG
   densify
   viewer
