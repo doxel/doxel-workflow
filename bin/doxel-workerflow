@@ -276,7 +276,10 @@ add() {
     float) result=${result//[^0-9\.]/} ;;
     floats) result=${result//[^0-9\.;]/} ;;
     int) result=${result//[^0-9]/} ;;
-    alpha) result=\"${result//[^a-zA-Z_0-9|]/}\" ;;
+    alpha)
+      result=\"${result//[^a-zA-Z_0-9|]/}\"
+      [ "$result" == '""' ] && unset result
+    ;; 
     switch)
       result=${result//[^a-z0-9]}
       case "$result" in
