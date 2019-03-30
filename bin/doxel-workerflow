@@ -245,6 +245,7 @@ EXITCODE=$?
 [ $EXITCODE -ne 0 ] && errmsg doxel-getjob returned error $EXITCODE 2>&1 | ts "$DATE_FORMAT"
 
 [ -z "$RESULT" ] && errmsg no reply 2>&1 | ts "$DATE_FORMAT"
+
 if [ "$RESULT" == "{}" ] ; then
   progress No job available 2>&1 | ts "$DATE_FORMAT"
   exit
@@ -276,7 +277,10 @@ add() {
     float) result=${result//[^0-9\.]/} ;;
     floats) result=${result//[^0-9\.;]/} ;;
     int) result=${result//[^0-9]/} ;;
-    alpha) result=\"${result//[^a-zA-Z_0-9|]/}\" ;;
+    alpha)
+      result=\"${result//[^a-zA-Z_0-9|]/}\"
+      [ "$result" == '""' ] && unset result
+    ;; 
     switch)
       result=${result//[^a-z0-9]}
       case "$result" in
@@ -477,7 +481,7 @@ sfm_init() {
     }
     progress "options: $SFMINIT_IMAGELISTING_OPTIONS"
     echo $SFMINIT_IMAGELISTING_OPTIONS > $SEGMENT_DIR/openMVG/SFMINIT_IMAGELISTING_OPTIONS
-    cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+    cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 openMVG_main_SfMInit_ImageListing \
 -i $SEGMENT_DIR/original_images \
 -o $SEGMENT_DIR/openMVG \
@@ -510,7 +514,7 @@ compute_features() {
     }
     progress "options: $COMPUTEFEATURES_OPTIONS"
     echo $COMPUTEFEATURES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEFEATURES_OPTIONS
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 openMVG_main_ComputeFeatures \
 --force 1 \
 -o $SEGMENT_DIR/openMVG/matches/ \
@@ -546,7 +550,7 @@ compute_matches() {
     }
     progress "options: $COMPUTEMATCHES_OPTIONS"
     echo $COMPUTEMATCHES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEMATCHES_OPTIONS
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 openMVG_main_ComputeMatches \
 --force 1 \
 -i $SEGMENT_DIR/openMVG/sfm_data.json \
@@ -578,7 +582,7 @@ global_sfm() {
     }
     progress "options: $GLOBALSFM_OPTIONS"
     echo $GLOBALSFM_OPTIONS > $SEGMENT_DIR/openMVG/GLOBALSFM_OPTIONS
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 openMVG_main_GlobalSfM \
 -i $SEGMENT_DIR/openMVG/sfm_data.json \
 -m $SEGMENT_DIR/openMVG/matches \
@@ -611,7 +615,7 @@ compute_structure_from_known_poses() {
     }
     progress "options: $COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS"
     echo $COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 openMVG_main_ComputeStructureFromKnownPoses \
 -i $SEGMENT_DIR/openMVG/sfm_data.bin \
 -m $SEGMENT_DIR/openMVG/matches \
@@ -644,7 +648,7 @@ openmvg2pmvs() {
     }
     progress "options: $OPENMVG2PMVS_OPTIONS"
     echo $OPENMVG2PMVS_OPTIONS > $SEGMENT_DIR/openMVG/OPENMVG2PMVS_OPTIONS
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 openMVG_main_openMVG2PMVS \
 -i $SEGMENT_DIR/openMVG/robust.json \
 -o $SEGMENT_DIR \
@@ -672,7 +676,7 @@ cmvspmvs() {
     FORCE=true
     progress "Running CMVS"
     progress "options: ${CMVS_MAXIMAGE:-80} ${CMVS_CPU:-$NUM_THREADS}"
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 cmvs $(pwd)/PMVS/ ${CMVS_MAXIMAGE:-80} ${CMVS_CPU:-$NUM_THREADS} && \
 genOption \
 $(pwd)/PMVS/ \
@@ -721,7 +725,7 @@ openmvg2mve2() {
     }
     progress "options: $OPENMVG2MVE2_OPTIONS"
     echo $OPENMVG2MVE2_OPTIONS > $SEGMENT_DIR/openMVG/OPENMVG2MVE2_OPTIONS
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 openMVG_main_openMVG2MVE2 \
 -i $SEGMENT_DIR/openMVG/robust.json \
 -o $SEGMENT_DIR \
@@ -755,7 +759,7 @@ smvsrecon() {
     }
     progress "options: $SMVSRECON_OPTIONS"
     echo $SMVSRECON_OPTIONS > $SEGMENT_DIR/MVE/SMVSRECON_OPTIONS
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 $(which smvsrecon) \
 $SMVSRECON_OPTIONS \
 $SEGMENT_DIR/MVE
@@ -787,7 +791,7 @@ fssrecon() {
     }
     progress "options: $FSSRECON_OPTIONS"
     echo $FSSRECON_OPTIONS > $SEGMENT_DIR/MVE/FSSRECON_OPTIONS
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 $(which fssrecon) \
 $FSSRECON_OPTIONS \
 $SEGMENT_DIR/MVE/smvs-B1.ply \
@@ -821,7 +825,7 @@ meshclean() {
     }
     progress "options: $MESHCLEAN_OPTIONS"
     echo $MESHCLEAN_OPTIONS > $SEGMENT_DIR/MVE/MESHCLEAN_OPTIONS
-cat << EOF >> $SEGMENT_DIR/job/$JOB_ID/script.sh
+cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
 $(which meshclean) \
 $MESHCLEAN_OPTIONS \
 $SEGMENT_DIR/MVE/surface_model.ply \
@@ -944,6 +948,9 @@ process_segment() {
   cd $SEGMENT_DIR || errmsg "no such directory: $SEGMENT_DIR"
   progress "$SEGMENT_DIR"
 
+  progress "Fix EXIFs"
+  for f in original_images/*jpeg ; do exiftool -all= -tagsfromfile @ -all:all -unsafe -icc_profile $f ; done
+
   assert_cameraModelInDatabase
   sfm_init
   compute_features
@@ -959,4 +966,4 @@ process_segment() {
 
 process_segment $SEGMENT_DIR
 
-} 2>&1 | ts "$DATE_FORMAT" | tee -a $SEGMENT_DIR/LOG
+} 2>&1 | ts "$DATE_FORMAT" | tee -a $SEGMENT_DIR/LOG $JOB_DIR/LOG.txt
