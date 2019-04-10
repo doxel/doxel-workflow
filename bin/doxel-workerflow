@@ -1,6 +1,6 @@
-#!/bin/bash
+#/bin/bash
 
-# Copyright (C) 2017 Alsenet SA
+# Copyright (C) 2017-2019 Alsenet SA
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License,
@@ -239,12 +239,13 @@ if [ -n "$SEGMENT_ID" ] ; then
 else
   RESULT=$(doxel-getjob -a $AUTHORIZATION $URL)
 fi
-
 EXITCODE=$?
 
 [ $EXITCODE -ne 0 ] && errmsg doxel-getjob returned error $EXITCODE 2>&1 | ts "$DATE_FORMAT"
 
 [ -z "$RESULT" ] && errmsg no reply 2>&1 | ts "$DATE_FORMAT"
+
+jq -r . <<< $RESULT
 
 if [ "$RESULT" == "{}" ] ; then
   progress No job available 2>&1 | ts "$DATE_FORMAT"
@@ -278,8 +279,8 @@ add() {
     floats) result=${result//[^0-9\.;]/} ;;
     int) result=${result//[^0-9]/} ;;
     alpha)
-      result=\"${result//[^a-zA-Z_0-9|]/}\"
-      [ "$result" == '""' ] && unset result
+      result=${result//[^a-zA-Z_0-9|]/}
+      [ "$result" == '' ] && unset result
     ;; 
     switch)
       result=${result//[^a-z0-9]}
@@ -308,7 +309,7 @@ fi
 
 if [ -z "$COMPUTEFEATURES_OPTIONS" ] ; then
   O=""
-  add alpha --describer_method .result.job.config.openmvg.computefeatures.describer_method
+  add alpha --describerMethod .result.job.config.openmvg.computefeatures.describer_method
   add int --upright .result.job.config.openmvg.computefeatures.upright
   add alpha --describerPreset .result.job.config.openmvg.computefeatures.describer_preset
   add int --numThreads .result.job.config.openmvg.computefeatures.numThreads
@@ -449,21 +450,21 @@ assert_cameraModelInDatabase() {
       if [ "$MODEL" != "null" ] ; then
         progress "$MODEL not found in $SENSOR_WIDTH_DB"
         if [ -z "$focal" ] ; then
-          WIDTH=$(identify -f '%w' $JPEG)
-          ESTIMATED_FOCAL=$(echo $WIDTH * 1.2 | bc -l)
+          WIDTH=$(identify -format '%w' $JPEG)
+          ESTIMATED_FOCAL=$(echo $WIDTH \* 1.2 | bc -l)
           SENSOR_WIDTH_OPTION="-f $ESTIMATED_FOCAL"
         fi
       else
         progress "Camera model not found in EXIF for $JPEG"
-        WIDTH=$(identify -f '%w' $JPEG)
-        ESTIMATED_FOCAL=$(echo $WIDTH * 1.2 | bc -l)
+        WIDTH=$(identify -format '%w' $JPEG)
+        ESTIMATED_FOCAL=$(echo $WIDTH \* 1.2 | bc -l)
         SENSOR_WIDTH_OPTION="-f $ESTIMATED_FOCAL"
       fi
     fi
   else
     progress "Camera model not found in EXIF for $JPEG"
-    WIDTH=$(identify -f '%w' $JPEG)
-    ESTIMATED_FOCAL=$(echo $WIDTH * 1.2 | bc -l)
+    WIDTH=$(identify -format '%w' $JPEG)
+    ESTIMATED_FOCAL=$(echo $WIDTH \* 1.2 | bc -l)
     SENSOR_WIDTH_OPTION="-f $ESTIMATED_FOCAL"
   fi
 }
@@ -481,7 +482,7 @@ sfm_init() {
     }
     progress "options: $SFMINIT_IMAGELISTING_OPTIONS"
     echo $SFMINIT_IMAGELISTING_OPTIONS > $SEGMENT_DIR/openMVG/SFMINIT_IMAGELISTING_OPTIONS
-    cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+    sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 openMVG_main_SfMInit_ImageListing \
 -i $SEGMENT_DIR/original_images \
 -o $SEGMENT_DIR/openMVG \
@@ -514,7 +515,7 @@ compute_features() {
     }
     progress "options: $COMPUTEFEATURES_OPTIONS"
     echo $COMPUTEFEATURES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEFEATURES_OPTIONS
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 openMVG_main_ComputeFeatures \
 --force 1 \
 -o $SEGMENT_DIR/openMVG/matches/ \
@@ -550,7 +551,7 @@ compute_matches() {
     }
     progress "options: $COMPUTEMATCHES_OPTIONS"
     echo $COMPUTEMATCHES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEMATCHES_OPTIONS
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 openMVG_main_ComputeMatches \
 --force 1 \
 -i $SEGMENT_DIR/openMVG/sfm_data.json \
@@ -582,7 +583,7 @@ global_sfm() {
     }
     progress "options: $GLOBALSFM_OPTIONS"
     echo $GLOBALSFM_OPTIONS > $SEGMENT_DIR/openMVG/GLOBALSFM_OPTIONS
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 openMVG_main_GlobalSfM \
 -i $SEGMENT_DIR/openMVG/sfm_data.json \
 -m $SEGMENT_DIR/openMVG/matches \
@@ -615,7 +616,7 @@ compute_structure_from_known_poses() {
     }
     progress "options: $COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS"
     echo $COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTESTRUCTUREFROMKNOWNPOSES_OPTIONS
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 openMVG_main_ComputeStructureFromKnownPoses \
 -i $SEGMENT_DIR/openMVG/sfm_data.bin \
 -m $SEGMENT_DIR/openMVG/matches \
@@ -648,7 +649,7 @@ openmvg2pmvs() {
     }
     progress "options: $OPENMVG2PMVS_OPTIONS"
     echo $OPENMVG2PMVS_OPTIONS > $SEGMENT_DIR/openMVG/OPENMVG2PMVS_OPTIONS
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 openMVG_main_openMVG2PMVS \
 -i $SEGMENT_DIR/openMVG/robust.json \
 -o $SEGMENT_DIR \
@@ -676,7 +677,7 @@ cmvspmvs() {
     FORCE=true
     progress "Running CMVS"
     progress "options: ${CMVS_MAXIMAGE:-80} ${CMVS_CPU:-$NUM_THREADS}"
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 cmvs $(pwd)/PMVS/ ${CMVS_MAXIMAGE:-80} ${CMVS_CPU:-$NUM_THREADS} && \
 genOption \
 $(pwd)/PMVS/ \
@@ -709,6 +710,7 @@ EOF
       [ -d $SEGMENT_DIR/PMVS/models ] && rm -r $SEGMENT_DIR/PMVS/models
       errmsg "CMVS/PMVS exited with status $EXIT_CODE"
     fi
+    [ ! -d  $SEGMENT_DIR/PMVS/models ] && errmsg "PMVS did not produce any results"
   fi
   export PLY=$SEGMENT_DIR/PMVS/models/option-????.ply
 }
@@ -725,7 +727,7 @@ openmvg2mve2() {
     }
     progress "options: $OPENMVG2MVE2_OPTIONS"
     echo $OPENMVG2MVE2_OPTIONS > $SEGMENT_DIR/openMVG/OPENMVG2MVE2_OPTIONS
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 openMVG_main_openMVG2MVE2 \
 -i $SEGMENT_DIR/openMVG/robust.json \
 -o $SEGMENT_DIR \
@@ -759,7 +761,7 @@ smvsrecon() {
     }
     progress "options: $SMVSRECON_OPTIONS"
     echo $SMVSRECON_OPTIONS > $SEGMENT_DIR/MVE/SMVSRECON_OPTIONS
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 $(which smvsrecon) \
 $SMVSRECON_OPTIONS \
 $SEGMENT_DIR/MVE
@@ -791,7 +793,7 @@ fssrecon() {
     }
     progress "options: $FSSRECON_OPTIONS"
     echo $FSSRECON_OPTIONS > $SEGMENT_DIR/MVE/FSSRECON_OPTIONS
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 $(which fssrecon) \
 $FSSRECON_OPTIONS \
 $SEGMENT_DIR/MVE/smvs-B1.ply \
@@ -825,7 +827,7 @@ meshclean() {
     }
     progress "options: $MESHCLEAN_OPTIONS"
     echo $MESHCLEAN_OPTIONS > $SEGMENT_DIR/MVE/MESHCLEAN_OPTIONS
-cat | sed -e 's/ +/ /g' << EOF >> $JOB_DIR/script.sh
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
 $(which meshclean) \
 $MESHCLEAN_OPTIONS \
 $SEGMENT_DIR/MVE/surface_model.ply \
@@ -922,6 +924,12 @@ densify() {
   local method
   method=$(jq -r .result.job.config.densification_method <<< $RESULT)
   case "$method" in
+    pmvs)
+      openmvg2pmvs
+      cmvspmvs
+      progress "Assert PMVS pointcloud has points"
+      assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_DENSIFICATION
+      ;;
     *)
       progress "viewer needs undistorted images in PMVS/ directory"
       openmvg2pmvs # viewer needs undistorted images in PMVS/ directory
@@ -931,12 +939,6 @@ densify() {
       assert_hasPoints MVE/smvs-B1.ply $REQUIRED_POINTS_AFTER_DENSIFICATION
       fssrecon
       meshclean
-      ;;
-    pmvs)
-      openmvg2pmvs
-      cmvspmvs
-      progress "Assert PMVS pointcloud has points"
-      assert_hasPoints PMVS/models/option-????.ply $REQUIRED_POINTS_AFTER_DENSIFICATION
       ;;
   esac
 
@@ -950,6 +952,7 @@ process_segment() {
 
   progress "Fix EXIFs"
   for f in original_images/*jpeg ; do exiftool -all= -tagsfromfile @ -all:all -unsafe -icc_profile $f ; done
+  rm original_images/*original
 
   assert_cameraModelInDatabase
   sfm_init
