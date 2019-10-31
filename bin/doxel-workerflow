@@ -332,7 +332,7 @@ if [ -z "$GLOBALSFM_OPTIONS" ] ; then
   add int --rotationAveraging .result.job.config.openmvg.globalsfm.rotation_averaging
   add int --translationAveraging= .result.job.config.openmvg.globalsfm.translation_averaging
   add alpha --refineIntrinsics .result.job.config.openmvg.globalsfm.refine_intrinsics
-  add switch prior_usage .result.job.config.openmvg.globalsfm.prior_usage
+  add switch --prior_usage .result.job.config.openmvg.globalsfm.prior_usage
   GLOBALSFM_OPTIONS=$O
 fi
 
