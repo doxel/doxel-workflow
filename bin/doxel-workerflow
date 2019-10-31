@@ -331,7 +331,7 @@ if [ -z "$GLOBALSFM_OPTIONS" ] ; then
   O=""
   add int --rotationAveraging .result.job.config.openmvg.globalsfm.rotation_averaging
   add int --translationAveraging= .result.job.config.openmvg.globalsfm.translation_averaging
-  add alpha --refine_intrinsics .result.job.config.openmvg.globalsfm.refine_intrinsics
+  add alpha --refineIntrinsics .result.job.config.openmvg.globalsfm.refine_intrinsics
   add switch prior_usage .result.job.config.openmvg.globalsfm.prior_usage
   GLOBALSFM_OPTIONS=$O
 fi
@@ -354,18 +354,18 @@ fi
 
 if [ -z "$SMVSRECON_OPTIONS" ] ; then
   O=""
-  add float --alpha .result.job.config.smvs.smvsrecon.alpha
-  add float --scale .result.job.config.smvs.smvsrecon.scale
-  add float --output_scale .result.job.config.smvs.smvsrecon.output_scale
-  add int --threads .result.job.config.smvs.smvsrecon.threads
+  add float --alpha= .result.job.config.smvs.smvsrecon.alpha
+  add float --scale= .result.job.config.smvs.smvsrecon.scale
+  add float --output_scale= .result.job.config.smvs.smvsrecon.output_scale
+  add int --threads= .result.job.config.smvs.smvsrecon.threads
   add switch --shading .result.job.config.smvs.smvsrecon.shading
   add switch --no_cut .result.job.config.smvs.smvsrecon.no_cut
-  add int --neighbors .result.job.config.smvs.smvsrecon.neighbors
-  add int --min_neighbors .result.job.config.smvs.smvsrecon.min_neighbors
+  add int --neighbors= .result.job.config.smvs.smvsrecon.neighbors
+  add int --min_neighbors= .result.job.config.smvs.smvsrecon.min_neighbors
   add switch --no_sgm .result.job.config.smvs.smvsrecon.no_sgm
   add switch --force_sgm .result.job.config.smvs.smvsrecon.force_sgm
-  add float --sgm_scale .result.job.config.smvs.smvsrecon.sgm_scale
-  add float --sgm_range .result.job.config.smvs.smvsrecon.sgm_range
+  add float --sgm_scale= .result.job.config.smvs.smvsrecon.sgm_scale
+  add float --sgm_range= .result.job.config.smvs.smvsrecon.sgm_range
   add switch --full_opt .result.job.config.smvs.smvsrecon.full_opt
   add switch --clean .result.job.config.smvs.smvsrecon.clean
   SMVSRECON_OPTIONS=$O
@@ -373,19 +373,19 @@ fi
 
 if [ -z "$FSSRECON_OPTIONS" ] ; then
   O=""
-  add float --scale-factor .result.job.config.smvs.fssrecon.scale_factor
-  add int --refine-octree .result.job.config.smvs.fssrecon.refine_octree
-  add float --min-scale .result.job.config.smvs.fssrecon.min_scale
-  add float --max_scale .result.job.config.smvs.fssrecon.max_scale
-  add alpha --interpolation .result.job.config.smvs.fssrecon.interpolation
+  add float --scale-factor= .result.job.config.smvs.fssrecon.scale_factor
+  add int --refine-octree= .result.job.config.smvs.fssrecon.refine_octree
+  add float --min-scale= .result.job.config.smvs.fssrecon.min_scale
+  add float --max_scale= .result.job.config.smvs.fssrecon.max_scale
+  add alpha --interpolation= .result.job.config.smvs.fssrecon.interpolation
   FSSRECON_OPTIONS=$O
 fi
 
 if [ -z "$MESHCLEAN_OPTIONS" ] ; then
   O=""
-  add float --threshold .result.job.config.smvs.meshclean.threshold
-  add float --percentile .result.job.config.smvs.meshclean.percentile
-  add float --component_size .result.job.config.smvs.meshclean.component_size
+  add float --threshold= .result.job.config.smvs.meshclean.threshold
+  add float --percentile= .result.job.config.smvs.meshclean.percentile
+  add float --component_size= .result.job.config.smvs.meshclean.component_size
   add switch --no_clean .result.job.config.smvs.meshclean.no_clean
   MESCHLEAN_OPTIONS=$O
 
