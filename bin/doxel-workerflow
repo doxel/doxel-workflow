@@ -316,6 +316,14 @@ if [ -z "$COMPUTEFEATURES_OPTIONS" ] ; then
   COMPUTEFEATURES_OPTIONS=$O
 fi
 
+if [ -z "$LISTMATCHINGPAIRS_OPTIONS" ] ; then
+  O=""
+  add switch --exhaustive_mode .result.job.config.openmvg.listmatchingpairs.exhaustive_mode
+  add switch --video_mode .result.job.config.openmvg.listmatchingpairs.video_mode
+  add switch --gps_mode .result.job.config.openmvg.listmatchingpairs.gps_mode
+  add int --neighbor_count .result.job.config.openmvg.listmatchingpairs.neighbor_count
+fi
+
 if [ -z "$COMPUTEMATCHES_OPTIONS" ] ; then
   O=""
   add float --ratio .result.job.config.openmvg.computematches.ratio
@@ -538,6 +546,29 @@ EOF
   fi
 }
 
+list_matching_pairs() {
+  if [ -z "$FORCE" -a -n "$(find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -name pair_list.txt -print -quit)" ]
+  then
+    progress Matching pairs already listed
+  else
+    FORCE=true
+    progress openMVG_main_listMatchingPairs
+    LISTMATCHINGPAIRS_OPTIONS={$LISTMATCHINGPAIRS_OPTIONS:-\
+      -E
+    }
+sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
+openMVG_main_ListMatchingPairs \
+-o $SEGMENT_DIR/openMVG/matches/pair_list.txt \
+-i $SEGMENT_DIR/openMVG/sfm_data.json \
+$LISTMATCHINGPAIRS_OPTIONS
+EOF
+    openMVG_main_ListMatchingPairs \
+      -o $SEGMENT_DIR/openMVG/matches/pair_list.txt \
+      -i $SEGMENT_DIR/openMVG/sfm_data.json \
+      $LISTMATCHINGPAIRS_OPTIONS
+  fi
+}
+
 compute_matches() {
   if [ -z "$FORCE" -a -n "$(find $SEGMENT_DIR/openMVG/matches/ -maxdepth 1 -name matches.putative.\* -print -quit)" ]
   then
@@ -547,7 +578,7 @@ compute_matches() {
     progress openMVG_main_ComputeMatches
     COMPUTEMATCHES_OPTIONS=${COMPUTEMATCHES_OPTIONS:-\
       -g e \
-      -v 12 \
+      -l $SEGMENT_DIR/openMVG/matches/pair_list.txt \
     }
     progress "options: $COMPUTEMATCHES_OPTIONS"
     echo $COMPUTEMATCHES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEMATCHES_OPTIONS
@@ -916,6 +947,7 @@ completed(){
 }
 
 sfm() {
+  list_matching_pairs
   compute_matches
   global_sfm
 }
