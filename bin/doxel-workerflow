@@ -550,7 +550,7 @@ list_matching_pairs() {
   else
     FORCE=true
     progress openMVG_main_listMatchingPairs
-    LISTMATCHINGPAIRS_OPTIONS={$LISTMATCHINGPAIRS_OPTIONS:-\
+    LISTMATCHINGPAIRS_OPTIONS=${LISTMATCHINGPAIRS_OPTIONS:-\
       -E \
     }
 sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
