@@ -326,7 +326,6 @@ if [ -z "$COMPUTEMATCHES_OPTIONS" ] ; then
   O=""
   add float --ratio .result.job.config.openmvg.computematches.ratio
   add fehao --geometric_model .result.job.config.openmvg.computematches.geometric_model
-  add int --video_mode_matching .result.job.config.openmvg.computematches.video_mode_matching
   add alpha --nearest_matching_method .result.job.config.openmvg.computematches.nearest_matching_method
   add switch --guided_matching .result.job.config.openmvg.computematches.guided_matching
   add int --cache_size .result.job.config.openmvg.computematches.cache_size
