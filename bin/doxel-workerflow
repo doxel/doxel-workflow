@@ -550,7 +550,7 @@ list_matching_pairs() {
   else
     FORCE=true
     progress openMVG_main_listMatchingPairs
-    LISTMATCHINGPAIRS_OPTIONS={$LISTMATCHINGPAIRS_OPTIONS:-\
+    LISTMATCHINGPAIRS_OPTIONS=${LISTMATCHINGPAIRS_OPTIONS:-\
       -E \
     }
 sed -r -e 's/ +/ /g' << EOF | tee -a $JOB_DIR/script.sh
@@ -575,7 +575,6 @@ compute_matches() {
     progress openMVG_main_ComputeMatches
     COMPUTEMATCHES_OPTIONS=${COMPUTEMATCHES_OPTIONS:-\
       -g e \
-      -l $SEGMENT_DIR/openMVG/matches/pair_list.txt \
     }
     progress "options: $COMPUTEMATCHES_OPTIONS"
     echo $COMPUTEMATCHES_OPTIONS > $SEGMENT_DIR/openMVG/COMPUTEMATCHES_OPTIONS
@@ -584,12 +583,14 @@ openMVG_main_ComputeMatches \
 --force 1 \
 -i $SEGMENT_DIR/openMVG/sfm_data.json \
 -o $SEGMENT_DIR/openMVG/matches \
+-l $SEGMENT_DIR/openMVG/matches/pair_list.txt \
 $COMPUTEMATCHES_OPTIONS
 EOF
     openMVG_main_ComputeMatches \
       --force 1 \
       -i $SEGMENT_DIR/openMVG/sfm_data.json \
       -o $SEGMENT_DIR/openMVG/matches \
+      -l $SEGMENT_DIR/openMVG/matches/pair_list.txt \
       $COMPUTEMATCHES_OPTIONS
 
     EXIT_CODE=$?
@@ -979,9 +980,12 @@ process_segment() {
   cd $SEGMENT_DIR || errmsg "no such directory: $SEGMENT_DIR"
   progress "$SEGMENT_DIR"
 
-  progress "Fix EXIFs"
-  for f in original_images/*jpeg ; do exiftool -all= -tagsfromfile @ -all:all -unsafe -icc_profile $f ; done
-  rm original_images/*original
+  if [ ! -f exif_fixed ] ; then
+    progress "Fix EXIFs"
+    for f in original_images/*jpeg ; do exiftool -all= -tagsfromfile @ -all:all -unsafe -icc_profile $f ; done
+    rm original_images/*original
+    touch exif_fixed
+  fi
 
   assert_cameraModelInDatabase
   sfm_init
