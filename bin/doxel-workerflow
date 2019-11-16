@@ -353,7 +353,7 @@ if [ -z "$OPENMVG2PMVS_OPTIONS" ] ; then
   O=""
   add float --resolution .result.job.config.openmvg.openmvg2pmvs.resolution
   add switch --useVisData .result.job.config.openmvg.openmvg2pmvs.use_vis_data
-  add int --CPU .result.job.config.openmvg.openmvg2pmvs.CPU
+  add int --nb_core .result.job.config.openmvg.openmvg2pmvs.nb_core
   OPENMVG2PMVS_OPTIONS=$O
 fi
 
