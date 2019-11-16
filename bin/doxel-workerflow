@@ -273,7 +273,7 @@ add() {
   local option=$2
   local path=$3
   local result=$(jq -r $path <<< $RESULT | sed -e s/^null//)
-  [ "${option: -1}" = '=' ] || option="$option "
+  [ "$option" = "--" ] || [ "${option: -1}" = '=' ] || option="$option "
   case $type in
     float) result=${result//[^0-9\.]/} ;;
     floats) result=${result//[^0-9\.;]/} ;;
