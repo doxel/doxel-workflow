@@ -318,9 +318,7 @@ fi
 
 if [ -z "$LISTMATCHINGPAIRS_OPTIONS" ] ; then
   O=""
-  add switch --exhaustive_mode .result.job.config.openmvg.listmatchingpairs.exhaustive_mode
-  add switch --video_mode .result.job.config.openmvg.listmatchingpairs.video_mode
-  add switch --gps_mode .result.job.config.openmvg.listmatchingpairs.gps_mode
+  add alpha -- .result.job.config.openmvg.listmatchingpairs.mode
   add int --neighbor_count .result.job.config.openmvg.listmatchingpairs.neighbor_count
 fi
 
