@@ -302,7 +302,7 @@ if [ -z "$SFMINIT_IMAGELISTING_OPTIONS" ] ; then
   add floats --intrinsics .result.job.config.openmvg.sfm_imagelisting.intrinsics
   add int --camera_model .result.job.config.openmvg.sfm_imagelisting.camera_model
   add int --group_camera_model .result.job.config.openmvg.sfm_imagelisting.group_camera_model
-  add int --use_pose_prior .result.job.config.openmvg.sfm_imagelisting.use_pose_prior
+  add switch --use_pose_prior .result.job.config.openmvg.sfm_imagelisting.use_pose_prior
   add floats --prior_weights .result.job.config.openmvg.sfm_imagelisting.prior_weights
   SFMINIT_IMAGELISTING_OPTIONS=$O
 fi
