@@ -320,6 +320,7 @@ if [ -z "$LISTMATCHINGPAIRS_OPTIONS" ] ; then
   O=""
   add alpha -- .result.job.config.openmvg.listmatchingpairs.mode
   add int --neighbor_count .result.job.config.openmvg.listmatchingpairs.neighbor_count
+  LISTMATCHINGPAIRS_OPTIONS=$O
 fi
 
 if [ -z "$COMPUTEMATCHES_OPTIONS" ] ; then
