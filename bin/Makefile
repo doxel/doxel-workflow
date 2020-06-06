@@ -8,5 +8,6 @@ install:
 	install -D doxel-segment-path ${PREFIX}/bin/doxel-segment-path
 	install -D doxel-progress ${PREFIX}/bin/doxel-progress
 	install -D doxel-segment-inject-pointcloud ${PREFIX}/bin/doxel-segment-inject-pointcloud
+	install -D doxel-segment-purge ${PREFIX}/bin/doxel-segment-purge
 
 .PHONY: install all
